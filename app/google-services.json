@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "893651251613",
+    "project_id": "ampafacil-9f182",
+    "storage_bucket": "ampafacil-9f182.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:893651251613:android:4028adaae82d261fd73f74",
+        "android_client_info": {
+          "package_name": "com.ampafacil.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfv_E1jOGmrU5xMR_D-S5HWHdko3kyPDM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

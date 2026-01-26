@@ -1,4 +1,5 @@
-// File: app/src/main/java/com/ampafacil/navigation/AppNavGraph.kt
+// File: app/src/main/java/com/ampafacil/app/navigation/AppNavGraph.kt
+// // Este archivo es el “mapa” de navegación: qué pantallas existen y cómo se pasa de una a otra.
 package com.ampafacil.app.navigation
 
 import androidx.compose.runtime.Composable
@@ -11,6 +12,7 @@ import com.ampafacil.app.ui.screens.HomeScreen
 
 @Composable
 fun AppNavGraph() {
+    // // Controlador que maneja los saltos entre pantallas.
     val navController = rememberNavController()
 
     NavHost(
@@ -19,15 +21,28 @@ fun AppNavGraph() {
     ) {
         composable(Routes.AUTH) {
             AuthScreen(
-                onAuthSuccess = { navController.navigate(Routes.AMPA_CODE) }
+                onAuthSuccess = {
+                    // // Tras acceder bien, se pasa a la pantalla del código y se evita volver atrás a Auth.
+                    navController.navigate(Routes.AMPA_CODE) {
+                        popUpTo(Routes.AUTH) { inclusive = true }
+                    }
+                }
             )
         }
+
         composable(Routes.AMPA_CODE) {
             AmpaCodeScreen(
-                onCodeAccepted = { navController.navigate(Routes.HOME) }
+                onCodeAccepted = {
+                    // // Si el código es correcto, se entra a Home y se evita volver atrás a la pantalla del código.
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.AMPA_CODE) { inclusive = true }
+                    }
+                }
             )
         }
+
         composable(Routes.HOME) {
+            // // Pantalla principal.
             HomeScreen()
         }
     }

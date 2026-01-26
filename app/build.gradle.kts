@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    //Alias para conexion con firebase, me fallaba y no sabia por que era este libreria habia que ponerla en tre sitios en la raiz, en libr.version y aqui.
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -57,5 +60,15 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    //Navegacion con compose
     implementation(libs.androidx.navigation.compose)
+
+    // --- Firebase BoM: fija versiones compatibles entre librerías Firebase (evita líos de versiones) ---
+    implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
+
+    // --- Firebase Auth: habilita login/registro con email y contraseña (y más métodos si luego quieres) ---
+    implementation("com.google.firebase:firebase-auth")
+
+
+
 }

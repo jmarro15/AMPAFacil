@@ -36,5 +36,10 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 
 
 
+google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
+
+
+
+
 
 
