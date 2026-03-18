@@ -10,6 +10,7 @@ import com.ampafacil.app.ui.screens.AmpaCodeScreen
 import com.ampafacil.app.ui.screens.AuthScreen
 import com.ampafacil.app.ui.screens.CreateAmpaScreen
 import com.ampafacil.app.ui.screens.HomeScreen
+import com.ampafacil.app.ui.screens.FamilyChildrenScreen
 
 @Composable
 fun AppNavGraph() {
