@@ -5,6 +5,8 @@ plugins {
 
     //Alias para conexion con firebase, me fallaba y no sabia por que era este libreria habia que ponerla en tre sitios en la raiz, en libr.version y aqui.
     alias(libs.plugins.google.services)
+
+
 }
 
 android {
@@ -52,6 +54,12 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.navigation.compose)
+
+    implementation(platform("com.google.firebase:firebase-bom:34.8.0")) // --- Firebase BoM: fija versiones compatibles entre librerías Firebase (evita líos de versiones) ---
+
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -61,13 +69,11 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     //Navegacion con compose
-    implementation(libs.androidx.navigation.compose)
 
-    // --- Firebase BoM: fija versiones compatibles entre librerías Firebase (evita líos de versiones) ---
-    implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
 
-    // --- Firebase Auth: habilita login/registro con email y contraseña (y más métodos si luego quieres) ---
-    implementation("com.google.firebase:firebase-auth")
+
+
+
 
 
 
