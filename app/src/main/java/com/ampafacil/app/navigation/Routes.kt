@@ -1,11 +1,13 @@
 // File: app/src/main/java/com/ampafacil/app/navigation/Routes.kt
-// // Aquí van los nombres de las pantallas, para no repetir strings sueltas por el proyecto.
 package com.ampafacil.app.navigation
 
 object Routes {
-    const val AUTH = "auth"             // // Pantalla de acceso (login/registro).
-    const val AMPA_CODE = "ampa_code"   // // Pantalla donde se mete/valida el código del AMPA.
+    const val START = "start"
+    const val AUTH = "auth"
+    const val AMPA_CODE = "ampa_code"
     const val CREATE_AMPA = "create_ampa"
-    const val HOME = "home"             // // Pantalla principal.
     const val FAMILY_CHILDREN = "family_children"
+    const val AMPA_SPLASH = "ampa_splash"
+    const val APPEARANCE = "appearance"
+    const val HOME = "home"
 }

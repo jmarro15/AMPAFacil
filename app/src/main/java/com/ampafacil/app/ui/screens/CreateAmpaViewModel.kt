@@ -81,7 +81,13 @@ class CreateAmpaViewModel : ViewModel() {
                     "schoolCode" to schoolCode8Chars.trim(),
                     "schoolName" to schoolName.trim(),
                     "themeConfig" to hashMapOf(
-                        "preset" to "basic"
+                        "primaryColor" to "#1565C0",
+                        "secondaryColor" to "#2E7D32",
+                        "backgroundColor" to "#F7F9FC",
+                        "borderThickness" to "MEDIUM",
+                        "fontStyle" to "DEFAULT",
+                        "logoUrl" to "",
+                        "schoolName" to schoolName.trim()
                     )
                 )
 
