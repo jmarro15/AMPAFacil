@@ -101,6 +101,7 @@ fun AmpaSplashScreen(
     val primary = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
     val background = parseHexColor(appearance.backgroundColor, Color(0xFFF7F9FC))
     val borderThickness = borderThicknessFrom(appearance.borderThickness)
+    val borderWidth = (borderThickness.dp).dp
     val fontFamily = when (fontStyleFrom(appearance.fontStyle)) {
         FontStyleOption.DEFAULT -> FontFamily.Default
         FontStyleOption.ROUNDED -> FontFamily.SansSerif
@@ -119,7 +120,7 @@ fun AmpaSplashScreen(
                 .size(150.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color.White)
-                .border(borderThickness.dp, primary, RoundedCornerShape(16.dp)),
+                .border(borderWidth, primary, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (appearance.logoUrl.isNotBlank()) {
