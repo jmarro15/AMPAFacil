@@ -2,14 +2,44 @@
 package com.ampafacil.app.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.ampafacil.app.data.AmpaAppearance
+import com.ampafacil.app.data.FontStyleOption
 import com.ampafacil.app.data.Roles
+import com.ampafacil.app.data.ampaAppearanceFromMap
+import com.ampafacil.app.data.borderThicknessFrom
+import com.ampafacil.app.data.fontStyleFrom
+import com.ampafacil.app.data.parseHexColor
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -28,6 +58,7 @@ fun AmpaCodeScreen(
     var telefono by remember { mutableStateOf("") }
 
     var selectedRole by remember { mutableStateOf(Roles.FAMILY) }
+    var appearance by remember { mutableStateOf(AmpaAppearance()) }
 
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance()
@@ -35,7 +66,10 @@ fun AmpaCodeScreen(
 
     val uid = auth.currentUser?.uid
 
-    /* Aquí, si ya teníamos perfil guardado, lo precargamos para no volver a escribirlo a mano. */
+    /*
+     * Aquí cargamos datos del perfil para no pedirlos otra vez.
+     * Si además el usuario ya tiene activeAmpaCode/ampaCode, también cargamos la apariencia de ese AMPA.
+     */
     LaunchedEffect(uid) {
         if (uid == null) return@LaunchedEffect
 
@@ -45,9 +79,41 @@ fun AmpaCodeScreen(
                     if (nombre.isBlank()) nombre = doc.getString("nombre") ?: ""
                     if (apellidos.isBlank()) apellidos = doc.getString("apellidos") ?: ""
                     if (telefono.isBlank()) telefono = doc.getString("telefono") ?: ""
+
+                    val activeCode = doc.getString("activeAmpaCode")?.trim()
+                        ?: doc.getString("ampaCode")?.trim()
+
+                    if (!activeCode.isNullOrBlank()) {
+                        db.collection("ampas").document(activeCode).get()
+                            .addOnSuccessListener { ampaDoc ->
+                                val schoolName = ampaDoc.getString("schoolName") ?: ""
+                                val loaded = ampaAppearanceFromMap(ampaDoc.get("themeConfig") as? Map<String, Any>)
+                                appearance = loaded.copy(
+                                    schoolName = if (loaded.schoolName.isBlank()) schoolName else loaded.schoolName
+                                )
+                            }
+                    }
                 }
             }
     }
+
+    val primaryColor = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
+    val secondaryColor = parseHexColor(appearance.secondaryColor, Color(0xFF2E7D32))
+    val backgroundColor = parseHexColor(appearance.backgroundColor, Color(0xFFF7F9FC))
+    val borderThickness = borderThicknessFrom(appearance.borderThickness)
+    val borderWidth = (borderThickness.dp).dp
+    val fontStyle = fontStyleFrom(appearance.fontStyle)
+
+    val fontFamily = when (fontStyle) {
+        FontStyleOption.DEFAULT -> FontFamily.Default
+        FontStyleOption.ROUNDED -> FontFamily.SansSerif
+        FontStyleOption.SERIF -> FontFamily.Serif
+    }
+
+    val buttonColors = ButtonDefaults.buttonColors(
+        containerColor = primaryColor,
+        contentColor = Color.White
+    )
 
     fun validateAndJoin() {
         /* Aquí validamos código y datos mínimos del miembro antes de unirnos. */
@@ -66,12 +132,20 @@ fun AmpaCodeScreen(
 
         val email = (user.email ?: "").trim()
         if (email.isBlank()) {
-            Toast.makeText(context, "Este usuario no tiene email. Para unirse necesitamos email/password.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                "Este usuario no tiene email. Para unirse necesitamos email/password.",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
         if (nombre.trim().isBlank() || apellidos.trim().isBlank()) {
-            Toast.makeText(context, "Necesitamos nombre y apellidos para identificar al miembro.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                "Necesitamos nombre y apellidos para identificar al miembro.",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
@@ -101,7 +175,7 @@ fun AmpaCodeScreen(
                     .addOnSuccessListener { memberDoc ->
                         val now = Timestamp.now()
 
-                        /* Aquí actualizamos el perfil del usuario (sirve para rellenar en futuras pantallas). */
+                        /* Aquí actualizamos el perfil del usuario. */
                         val userUpdate = hashMapOf(
                             "email" to email,
                             "nombre" to nombre.trim(),
@@ -113,7 +187,6 @@ fun AmpaCodeScreen(
                         )
 
                         if (memberDoc.exists()) {
-                            /* Aquí ya éramos miembros: rellenamos datos identificativos sin cambiar role/status. */
                             val existingRole = memberDoc.getString("role") ?: ""
                             val existingStatus = memberDoc.getString("status") ?: ""
                             val existingEmail = memberDoc.getString("email") ?: email
@@ -140,13 +213,17 @@ fun AmpaCodeScreen(
                                 }
                                 .addOnFailureListener { e ->
                                     isLoading = false
-                                    Toast.makeText(context, "Error actualizando datos: ${e.message}", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Error actualizando datos: ${e.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
 
                             return@addOnSuccessListener
                         }
 
-                        /* Aquí creamos membership como FAMILY/TUTOR en estado PENDING, ya con datos completos. */
+                        /* Aquí creamos membership como FAMILY/TUTOR en estado PENDING. */
                         val memberData = hashMapOf(
                             "email" to email,
                             "nombre" to nombre.trim(),
@@ -158,7 +235,6 @@ fun AmpaCodeScreen(
                             "updatedAt" to now
                         )
 
-                        /* Aquí escribimos en batch para que quede todo coherente de golpe. */
                         val batch = db.batch()
                         batch.set(memberRef, memberData)
                         batch.set(userRef, userUpdate, SetOptions.merge())
@@ -166,107 +242,173 @@ fun AmpaCodeScreen(
                         batch.commit()
                             .addOnSuccessListener {
                                 isLoading = false
-                                Toast.makeText(context, "Unión realizada ✅ (pendiente de aprobación)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Unión realizada ✅ (pendiente de aprobación)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 onCodeAccepted()
                             }
                             .addOnFailureListener { e ->
                                 isLoading = false
-                                Toast.makeText(context, "Error uniéndonos al AMPA: ${e.message}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    context,
+                                    "Error uniéndonos al AMPA: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                     }
                     .addOnFailureListener { e ->
                         isLoading = false
-                        Toast.makeText(context, "Error comprobando membresía: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "Error comprobando membresía: ${e.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
             }
             .addOnFailureListener { e ->
                 isLoading = false
-                Toast.makeText(context, "Error consultando Firestore: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    "Error consultando Firestore: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
             }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(backgroundColor)
             .padding(20.dp),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Código AMPA", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = code,
-            onValueChange = { new -> code = new.filter { it.isDigit() }.take(6) },
-            label = { Text("Código AMPA (6 dígitos)") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+        Text(
+            text = "Código AMPA",
+            style = MaterialTheme.typography.headlineSmall,
+            color = primaryColor,
+            fontFamily = fontFamily
         )
 
         Spacer(Modifier.height(12.dp))
 
-        Text("Datos del miembro")
-        Spacer(Modifier.height(8.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(borderWidth, secondaryColor, RoundedCornerShape(14.dp)),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor)
+                    .padding(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { new -> code = new.filter { it.isDigit() }.take(6) },
+                    label = { Text("Código AMPA (6 dígitos)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        OutlinedTextField(
-            value = nombre,
-            onValueChange = { nombre = it },
-            label = { Text("Nombre") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
+                Spacer(Modifier.height(12.dp))
 
-        Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Datos del miembro",
+                    color = primaryColor,
+                    fontFamily = fontFamily
+                )
 
-        OutlinedTextField(
-            value = apellidos,
-            onValueChange = { apellidos = it },
-            label = { Text("Apellidos") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
+                Spacer(Modifier.height(8.dp))
 
-        Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        OutlinedTextField(
-            value = telefono,
-            onValueChange = { telefono = it.filter { c -> c.isDigit() }.take(15) },
-            label = { Text("Teléfono (opcional)") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
+                Spacer(Modifier.height(8.dp))
 
-        Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = apellidos,
+                    onValueChange = { apellidos = it },
+                    label = { Text("Apellidos") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        Text("Tipo de usuario")
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(
-                selected = selectedRole == Roles.FAMILY,
-                onClick = { selectedRole = Roles.FAMILY }
-            )
-            Text("Familia", modifier = Modifier.padding(end = 16.dp))
+                Spacer(Modifier.height(8.dp))
 
-            RadioButton(
-                selected = selectedRole == Roles.TUTOR,
-                onClick = { selectedRole = Roles.TUTOR }
-            )
-            Text("Tutor/a")
+                OutlinedTextField(
+                    value = telefono,
+                    onValueChange = { telefono = it.filter { c -> c.isDigit() }.take(15) },
+                    label = { Text("Teléfono (opcional)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = "Tipo de usuario",
+                    color = primaryColor,
+                    fontFamily = fontFamily
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = selectedRole == Roles.FAMILY,
+                        onClick = { selectedRole = Roles.FAMILY }
+                    )
+                    Text(
+                        text = "Familia",
+                        modifier = Modifier.padding(end = 16.dp),
+                        fontFamily = fontFamily
+                    )
+
+                    RadioButton(
+                        selected = selectedRole == Roles.TUTOR,
+                        onClick = { selectedRole = Roles.TUTOR }
+                    )
+                    Text(
+                        text = "Tutor/a",
+                        fontFamily = fontFamily
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Button(
+                    onClick = { validateAndJoin() },
+                    enabled = !isLoading && code.length == 6,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = buttonColors
+                ) {
+                    Text(
+                        text = if (isLoading) "Uniéndonos..." else "Unirse",
+                        fontFamily = fontFamily
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = { onCreateAmpa() },
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Crear un AMPA nuevo (solo directiva)",
+                        color = primaryColor,
+                        fontFamily = fontFamily
+                    )
+                }
+            }
         }
-
-        Spacer(Modifier.height(12.dp))
-
-        Button(
-            onClick = { validateAndJoin() },
-            enabled = !isLoading && code.length == 6,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(if (isLoading) "Uniéndonos..." else "Unirse") }
-
-        Spacer(Modifier.height(10.dp))
-
-        OutlinedButton(
-            onClick = { onCreateAmpa() },
-            enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Crear un AMPA nuevo (solo directiva)") }
     }
 }
