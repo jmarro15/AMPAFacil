@@ -57,8 +57,10 @@ import com.ampafacil.app.data.fontStyleFrom
 import com.ampafacil.app.data.parseHexColor
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CreateAmpaScreen(
     onBack: () -> Unit,
@@ -367,9 +369,9 @@ fun CreateAmpaScreen(
                 }
             }
 
-            Spacer(Modifier.height(18.dp))
-            HorizontalDivider(color = secondaryColor)
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(20.dp))
+            HorizontalDivider(color = secondaryColor.copy(alpha = 0.6f))
+            Spacer(Modifier.height(20.dp))
 
             Text(
                 text = "Datos obligatorios de la directiva (creador)",
@@ -391,37 +393,43 @@ fun CreateAmpaScreen(
                         .background(backgroundColor)
                         .padding(12.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    /* Aquí colocamos los roles en varias líneas para que no se rompan en móviles estrechos. */
+                    Column(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Rol *:", color = primaryColor, fontFamily = fontFamily)
-                        Spacer(Modifier.size(8.dp))
-
-                        FilterChip(
-                            selected = role == Roles.PRESIDENT,
-                            onClick = { role = Roles.PRESIDENT },
-                            label = { Text("PRESIDENTE", fontFamily = fontFamily) }
+                        Text(
+                            text = "Rol *:",
+                            color = primaryColor,
+                            fontFamily = fontFamily
                         )
 
-                        Spacer(Modifier.size(8.dp))
+                        Spacer(Modifier.height(10.dp))
 
-                        FilterChip(
-                            selected = role == Roles.VICEPRESIDENT,
-                            onClick = { role = Roles.VICEPRESIDENT },
-                            label = { Text("VICE", fontFamily = fontFamily) }
-                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            FilterChip(
+                                selected = role == Roles.PRESIDENT,
+                                onClick = { role = Roles.PRESIDENT },
+                                label = { Text("PRESIDENTE", fontFamily = fontFamily) }
+                            )
 
-                        Spacer(Modifier.size(8.dp))
+                            FilterChip(
+                                selected = role == Roles.VICEPRESIDENT,
+                                onClick = { role = Roles.VICEPRESIDENT },
+                                label = { Text("VICE", fontFamily = fontFamily) }
+                            )
 
-                        FilterChip(
-                            selected = role == Roles.SECRETARY,
-                            onClick = { role = Roles.SECRETARY },
-                            label = { Text("SECRETARIO", fontFamily = fontFamily) }
-                        )
+                            FilterChip(
+                                selected = role == Roles.SECRETARY,
+                                onClick = { role = Roles.SECRETARY },
+                                label = { Text("SECRETARIO", fontFamily = fontFamily) }
+                            )
+                        }
                     }
-
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(20.dp))
 
                     OutlinedTextField(
                         value = nombre,
@@ -431,7 +439,7 @@ fun CreateAmpaScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(20.dp))
 
                     OutlinedTextField(
                         value = apellidos,
@@ -482,7 +490,7 @@ fun CreateAmpaScreen(
             Text(
                 text = "Los campos con * son obligatorios. El PDF y la personalización se completan después.",
                 style = MaterialTheme.typography.bodySmall,
-                color = primaryColor,
+                color = secondaryColor.copy(alpha = 0.8f),
                 fontFamily = fontFamily
             )
         }
