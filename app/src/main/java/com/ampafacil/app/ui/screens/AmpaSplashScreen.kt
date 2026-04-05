@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ampafacil.app.data.AmpaAppearance
@@ -58,8 +58,6 @@ fun AmpaSplashScreen(
         val uid = auth.currentUser?.uid
         if (uid == null) {
             loading = false
-            delay(3000)
-            onDone()
             return@LaunchedEffect
         }
 
@@ -100,8 +98,7 @@ fun AmpaSplashScreen(
 
     val primary = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
     val background = parseHexColor(appearance.backgroundColor, Color(0xFFF7F9FC))
-    val borderThickness = borderThicknessFrom(appearance.borderThickness)
-    val borderWidth = (borderThickness.dp).dp
+    val borderWidth = Dp(borderThicknessFrom(appearance.borderThickness).toFloat())
     val fontFamily = when (fontStyleFrom(appearance.fontStyle)) {
         FontStyleOption.DEFAULT -> FontFamily.Default
         FontStyleOption.ROUNDED -> FontFamily.SansSerif
