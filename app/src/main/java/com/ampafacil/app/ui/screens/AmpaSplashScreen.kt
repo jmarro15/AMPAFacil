@@ -1,6 +1,6 @@
-// File: app/src/main/java/com/ampafacil/app/ui/screens/AmpaSplashScreen.kt
 package com.ampafacil.app.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -8,16 +8,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -26,10 +30,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.ampafacil.app.R
 import com.ampafacil.app.data.AmpaAppearance
 import com.ampafacil.app.data.FontStyleOption
 import com.ampafacil.app.data.ampaAppearanceFromMap
@@ -39,10 +46,11 @@ import com.ampafacil.app.data.parseHexColor
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
+import com.ampafacil.app.data.BorderThickness
 
 /*
  * Pantallazo del AMPA: se ve al abrir la app (solo una vez al día).
- * Dura 3 segundos y luego pasa a Home.
+ * Dura unos segundos y luego pasa a Home.
  */
 @Composable
 fun AmpaSplashScreen(
@@ -91,71 +99,125 @@ fun AmpaSplashScreen(
 
     LaunchedEffect(loading) {
         if (!loading) {
-            delay(3000)
+            delay(9000)
             onDone()
         }
     }
 
     val primary = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
     val background = parseHexColor(appearance.backgroundColor, Color(0xFFF7F9FC))
-    val borderWidth = Dp(borderThicknessFrom(appearance.borderThickness).toFloat())
+    val borderWidth = when (borderThicknessFrom(appearance.borderThickness)) {
+        BorderThickness.THIN -> 1.dp
+        BorderThickness.MEDIUM -> 2.dp
+        BorderThickness.THICK -> 3.dp
+    }
     val fontFamily = when (fontStyleFrom(appearance.fontStyle)) {
         FontStyleOption.DEFAULT -> FontFamily.Default
         FontStyleOption.ROUNDED -> FontFamily.SansSerif
         FontStyleOption.SERIF -> FontFamily.Serif
     }
 
+    // Aquí preparamos el nombre del centro con fallback para no romper nada.
+    val schoolName = appearance.schoolName.ifBlank { "AMPA" }
+
+    // Dejamos este hueco preparado para cuando exista el nombre real del AMPA.
+    val ampaName: String? = null
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(background),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(background)
+            .padding(horizontal = 24.dp, vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(150.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
-                .border(borderWidth, primary, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
+        // Empujamos el contenido principal hacia la mitad superior para darle protagonismo.
+        Spacer(modifier = Modifier.weight(0.7f))
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            if (appearance.logoUrl.isNotBlank()) {
-                AsyncImage(
-                    model = appearance.logoUrl,
-                    contentDescription = "Logo del AMPA",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    androidx.compose.material3.Icon(
-                        imageVector = Icons.Outlined.Image,
-                        contentDescription = null,
-                        tint = primary,
-                        modifier = Modifier.size(42.dp)
+            Box(
+                modifier = Modifier
+                    .size(170.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White)
+                    .border(borderWidth, primary, RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (appearance.logoUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = appearance.logoUrl,
+                        contentDescription = "Logo del AMPA",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        contentScale = ContentScale.Fit
                     )
-                    Spacer(Modifier.height(6.dp))
-                    Text("Logo pendiente", color = primary, fontFamily = fontFamily)
+                } else {
+                    // Si aún no hay logo, mostramos un placeholder elegante y claro.
+                    Column(
+                        modifier = Modifier.padding(horizontal = 14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Image,
+                            contentDescription = null,
+                            tint = primary,
+                            modifier = Modifier.size(42.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "AQUÍ LOGO DE SU AMPA",
+                            color = primary,
+                            fontFamily = fontFamily,
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            // De momento enseñamos solo lo que existe; cuando tengamos el dato, aquí irá el nombre del AMPA.
+            if (!ampaName.isNullOrBlank()) {
+                Text(
+                    text = ampaName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = primary,
+                    fontFamily = fontFamily,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+
+            Text(
+                text = schoolName,
+                style = MaterialTheme.typography.headlineSmall,
+                color = primary,
+                fontFamily = fontFamily,
+                textAlign = TextAlign.Center
+            )
+
+            if (loading) {
+                Spacer(Modifier.height(22.dp))
+                CircularProgressIndicator(color = primary)
             }
         }
 
-        Spacer(Modifier.height(18.dp))
+        Spacer(modifier = Modifier.weight(1.1f))
 
-        Text(
-            text = appearance.schoolName.ifBlank { "AMPA" },
-            style = MaterialTheme.typography.headlineSmall,
-            color = primary,
-            fontFamily = fontFamily
+        // En la parte inferior dejamos el logo de AMPAFácil más discreto y con margen.
+        Image(
+            painter = painterResource(id = R.drawable.logo_ampafacil),
+            contentDescription = "Logo de AMPAFácil",
+            modifier = Modifier.size(112.dp),
+            contentScale = ContentScale.Fit
         )
 
-        Spacer(Modifier.height(8.dp))
-        Text("Bienvenido/a", color = primary, fontFamily = fontFamily)
-
-        if (loading) {
-            Spacer(Modifier.height(24.dp))
-            CircularProgressIndicator(color = primary)
-        }
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }
