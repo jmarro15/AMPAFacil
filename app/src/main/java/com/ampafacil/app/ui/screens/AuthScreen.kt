@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun AuthScreen(
@@ -229,23 +231,39 @@ fun AuthScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // // Aquí ponemos el campo de email con la etiqueta en gris oscuro casi negro
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Email") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedLabelColor = Color(0xFF222222),
+                    unfocusedLabelColor = Color(0xFF222222),
+                    focusedTextColor = Color(0xFF111111),
+                    unfocusedTextColor = Color(0xFF111111),
+                    cursorColor = Color(0xFF111111)
+                )
             )
 
             Spacer(Modifier.height(10.dp))
 
+// // Aquí ponemos el campo de contraseña con la etiqueta en gris oscuro casi negro
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Contraseña") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedLabelColor = Color(0xFF222222),
+                    unfocusedLabelColor = Color(0xFF222222),
+                    focusedTextColor = Color(0xFF111111),
+                    unfocusedTextColor = Color(0xFF111111),
+                    cursorColor = Color(0xFF111111)
+                )
             )
 
             Spacer(Modifier.height(16.dp))
