@@ -4,16 +4,37 @@
 
 package com.ampafacil.app.ui.screens
 
+import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun AuthScreen(
@@ -26,11 +47,72 @@ fun AuthScreen(
     // // Yo controlo si estoy “cargando” para no dejar pulsar 20 veces
     var isLoading by remember { mutableStateOf(false) }
 
+    // // Estado del logo (solo se muestra si existe URL y la carga va bien)
+    var logoUrl by remember { mutableStateOf<String?>(null) }
+    var logoLoadFailed by remember { mutableStateOf(false) }
+
     // // Yo uso esto para enseñar mensajitos rápidos en pantalla
     val context = LocalContext.current
 
     // // Yo obtengo el “motor” de Firebase que gestiona login/registro
     val auth = remember { FirebaseAuth.getInstance() }
+    val db = remember { FirebaseFirestore.getInstance() }
+    val prefs = remember {
+        context.getSharedPreferences("ampafacil_auth", Context.MODE_PRIVATE)
+    }
+
+    fun loadLogoForAmpa(ampaCode: String) {
+        db.collection("ampas").document(ampaCode).get()
+            .addOnSuccessListener { ampaDoc ->
+                val themeConfig = ampaDoc.get("themeConfig") as? Map<*, *>
+                val loadedLogo = themeConfig?.get("logoUrl")?.toString()?.trim().orEmpty()
+
+                logoUrl = loadedLogo.takeIf { it.isNotBlank() }
+                logoLoadFailed = false
+            }
+            .addOnFailureListener {
+                logoUrl = null
+                logoLoadFailed = false
+            }
+    }
+
+    fun resolveLogoForAuthScreen() {
+        val uid = auth.currentUser?.uid
+
+        if (uid.isNullOrBlank()) {
+            val localAmpaCode = prefs.getString("last_ampa_code", null)?.trim()
+            if (!localAmpaCode.isNullOrBlank()) {
+                loadLogoForAmpa(localAmpaCode)
+            } else {
+                logoUrl = null
+                logoLoadFailed = false
+            }
+            return
+        }
+
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { userDoc ->
+                val activeCode = userDoc.getString("activeAmpaCode")?.trim()
+                    ?: userDoc.getString("ampaCode")?.trim()
+
+                if (activeCode.isNullOrBlank()) {
+                    logoUrl = null
+                    logoLoadFailed = false
+                    return@addOnSuccessListener
+                }
+
+                prefs.edit().putString("last_ampa_code", activeCode).apply()
+                loadLogoForAmpa(activeCode)
+            }
+            .addOnFailureListener {
+                logoUrl = null
+                logoLoadFailed = false
+            }
+    }
+
+    LaunchedEffect(Unit) {
+        resolveLogoForAuthScreen()
+    }
 
     fun register() {
         // // Yo hago una validación simple antes de llamar a Firebase
@@ -120,64 +202,81 @@ fun AuthScreen(
     }
 
     // ---------------- UI ----------------
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(20.dp)
     ) {
-        Text("AMPAFácil - Acceso", style = MaterialTheme.typography.headlineSmall)
-
-        Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(10.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        Button(
-            onClick = { register() },
-            enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (isLoading) "Cargando..." else "Registrarme")
+        if (!logoUrl.isNullOrBlank() && !logoLoadFailed) {
+            AsyncImage(
+                model = logoUrl,
+                contentDescription = "Logo AMPA",
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 20.dp)
+                    .size(width = 140.dp, height = 84.dp),
+                contentScale = ContentScale.Fit,
+                onError = { logoLoadFailed = true }
+            )
         }
 
-        Spacer(Modifier.height(10.dp))
-
-        Button(
-            onClick = { login() },
-            enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(if (isLoading) "Cargando..." else "Entrar")
-        }
+            Text("AMPAFácil - Acceso", style = MaterialTheme.typography.headlineSmall)
 
-        Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(16.dp))
 
-        OutlinedButton(
-            onClick = { resendVerification() },
-            enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Reenviar verificación")
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Contraseña") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = { register() },
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (isLoading) "Cargando..." else "Registrarme")
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            Button(
+                onClick = { login() },
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (isLoading) "Cargando..." else "Entrar")
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            OutlinedButton(
+                onClick = { resendVerification() },
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Reenviar verificación")
+            }
         }
     }
 }
