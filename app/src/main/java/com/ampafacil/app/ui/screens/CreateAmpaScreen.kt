@@ -1,6 +1,7 @@
 // File: app/src/main/java/com/ampafacil/app/ui/screens/CreateAmpaScreen.kt
 package com.ampafacil.app.ui.screens
 
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -234,6 +235,11 @@ fun CreateAmpaScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        // Aquí guardamos en local el código del AMPA recién creado para que
+                        // la app pueda recuperar su contexto visual también antes del login.
+                        val prefs = context.getSharedPreferences("ampafacil_auth", Context.MODE_PRIVATE)
+                        prefs.edit().putString("last_ampa_code", createdCode).apply()
+
                         clipboard.setText(AnnotatedString(createdCode))
                         Toast.makeText(context, "Código copiado ✅", Toast.LENGTH_SHORT).show()
                         onDone()

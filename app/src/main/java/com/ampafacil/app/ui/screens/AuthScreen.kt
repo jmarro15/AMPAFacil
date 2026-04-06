@@ -225,7 +225,7 @@ fun AuthScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("AMPAFácil - Acceso", style = MaterialTheme.typography.headlineSmall)
+            Text("AMPAFácil - Accede a tu AMPA.", style = MaterialTheme.typography.headlineSmall)
 
             Spacer(Modifier.height(16.dp))
 

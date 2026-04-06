@@ -44,6 +44,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import android.content.Context
 
 @Composable
 fun AmpaCodeScreen(
@@ -65,6 +66,7 @@ fun AmpaCodeScreen(
     val auth = FirebaseAuth.getInstance()
 
     val uid = auth.currentUser?.uid
+
 
     /*
      * Aquí cargamos datos del perfil para no pedirlos otra vez.
@@ -207,6 +209,11 @@ fun AmpaCodeScreen(
 
                             batch.commit()
                                 .addOnSuccessListener {
+                                    // Aquí guardamos en local el último AMPA válido para poder reutilizarlo
+                                    // en Splash y en Auth sin depender siempre del login.
+                                    val prefs = context.getSharedPreferences("ampafacil_auth", Context.MODE_PRIVATE)
+                                    prefs.edit().putString("last_ampa_code", clean).apply()
+
                                     isLoading = false
                                     Toast.makeText(context, "Datos actualizados ✅", Toast.LENGTH_SHORT).show()
                                     onCodeAccepted()
@@ -241,6 +248,11 @@ fun AmpaCodeScreen(
 
                         batch.commit()
                             .addOnSuccessListener {
+                                // Aquí guardamos en local el último AMPA válido para que la app pueda
+                                // recuperar logo y apariencia también cuando ya no hay sesión activa.
+                                val prefs = context.getSharedPreferences("ampafacil_auth", Context.MODE_PRIVATE)
+                                prefs.edit().putString("last_ampa_code", clean).apply()
+
                                 isLoading = false
                                 Toast.makeText(
                                     context,
@@ -248,6 +260,7 @@ fun AmpaCodeScreen(
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 onCodeAccepted()
+
                             }
                             .addOnFailureListener { e ->
                                 isLoading = false
