@@ -166,8 +166,19 @@ fun HomeScreen(
                         .padding(12.dp)
                 ) {
                     // Aquí enseñamos un menú distinto según el rol.
-                    // La directiva ve gestión interna y la familia ve participación.
+                    // La directiva ve gestión interna, pero también mantenemos el acceso
+                    // a la pantalla de hijos para no perder esa funcionalidad.
                     if (isDirector) {
+                        Button(
+                            onClick = onAddChild,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Añadir hijo o hija", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
                         Button(
                             onClick = onOpenPaymentsReview,
                             modifier = Modifier.fillMaxWidth(),
