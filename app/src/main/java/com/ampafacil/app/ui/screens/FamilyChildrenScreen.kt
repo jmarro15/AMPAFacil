@@ -1,6 +1,13 @@
+// File: app/src/main/java/com/ampafacil/app/ui/screens/FamilyChildrenScreen.kt
 package com.ampafacil.app.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,8 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.DropdownMenu
-
+//import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -51,6 +57,7 @@ import com.google.firebase.firestore.SetOptions
 
 private const val MIN_CHILDREN = 1
 private const val MAX_CHILDREN = 6
+private const val MAX_PROOF_SIZE_BYTES = 10L * 1024L * 1024L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,10 +72,52 @@ fun FamilyChildrenScreen(
     val user = auth.currentUser
     val uid = user?.uid
 
+    val proofMimeTypes = listOf("application/pdf", "image/jpeg", "image/png")
+
     var isLoadingAmpaCode by remember { mutableStateOf(true) }
     var ampaCode by remember { mutableStateOf<String?>(null) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Aquí guardamos el justificante por familia para dejar preparada la futura subida a Storage.
+    var paymentProofUri by remember { mutableStateOf<String?>(null) }
+    var paymentProofMimeType by remember { mutableStateOf<String?>(null) }
+    var paymentProofFileName by remember { mutableStateOf<String?>(null) }
+    var paymentProofSizeBytes by remember { mutableStateOf<Long?>(null) }
+
+    val proofPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+
+        val mimeType = context.contentResolver.getType(uri)
+        if (mimeType !in proofMimeTypes) {
+            val msg = "Formato no válido. Adjuntamos PDF, JPG o PNG."
+            errorMessage = msg
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        val sizeBytes = readFileSizeBytes(context, uri)
+        if (sizeBytes != null && sizeBytes > MAX_PROOF_SIZE_BYTES) {
+            val msg = "El justificante supera 10 MB. Adjuntamos un archivo más ligero."
+            errorMessage = msg
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        try {
+            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: SecurityException) {
+            // Aquí seguimos aunque este dispositivo no permita persistir permisos.
+        }
+
+        paymentProofUri = uri.toString()
+        paymentProofMimeType = mimeType
+        paymentProofFileName = readDisplayName(context, uri)
+        paymentProofSizeBytes = sizeBytes
+        errorMessage = null
+    }
 
     // Aquí controlamos cuántos hijos se están editando.
     var childrenCount by remember { mutableStateOf(MIN_CHILDREN) }
@@ -171,11 +220,30 @@ fun FamilyChildrenScreen(
                 val now = Timestamp.now()
                 val childrenCollectionRef = memberRef.collection("children")
 
+                val existingProofPath = memberDoc.getString("paymentProofStoragePath")
+                val existingProofUrl = memberDoc.getString("paymentProofDownloadUrl")
+                val hasStoredProof = !existingProofPath.isNullOrBlank() || !existingProofUrl.isNullOrBlank()
+                val hasLocalProof = !paymentProofUri.isNullOrBlank()
+
+                if (!hasStoredProof && !hasLocalProof) {
+                    isSaving = false
+                    errorMessage = "Necesitamos adjuntar justificante de pago anual (PDF, JPG o PNG)."
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                    return@addOnSuccessListener
+                }
+
                 // Aquí actualizamos el resumen del miembro (contador y fecha de actualización).
                 val memberUpdate = hashMapOf(
                     "childrenCount" to childrenCount,
                     "childrenUpdatedAt" to now,
-                    "updatedAt" to now
+                    "updatedAt" to now,
+                    // Aquí dejamos metadatos para la futura subida a Storage.
+                    "paymentProofLocalUri" to (paymentProofUri ?: ""),
+                    "paymentProofMimeType" to (paymentProofMimeType ?: ""),
+                    "paymentProofFileName" to (paymentProofFileName ?: ""),
+                    "paymentProofSizeBytes" to (paymentProofSizeBytes ?: 0L),
+                    "paymentProofPendingUpload" to hasLocalProof,
+                    "paymentProofUpdatedAt" to now
                 )
 
                 childrenCollectionRef.get()
@@ -379,6 +447,46 @@ fun FamilyChildrenScreen(
                         )
                     }
 
+                    // Aquí dejamos el justificante al final de la pantalla, como acordamos.
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text("Justificante anual de pago", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "Adjuntamos un único justificante por familia (PDF, JPG o PNG; máximo 10 MB).",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+
+                            OutlinedButton(
+                                onClick = { proofPickerLauncher.launch(arrayOf("application/pdf", "image/jpeg", "image/png")) },
+                                enabled = !isSaving
+                            ) {
+                                Text(if (paymentProofUri.isNullOrBlank()) "Adjuntar justificante" else "Cambiar justificante")
+                            }
+
+                            if (!paymentProofUri.isNullOrBlank()) {
+                                Text(
+                                    text = "Archivo seleccionado: ${paymentProofFileName ?: "sin nombre"}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+
+                                OutlinedButton(
+                                    onClick = {
+                                        paymentProofUri = null
+                                        paymentProofMimeType = null
+                                        paymentProofFileName = null
+                                        paymentProofSizeBytes = null
+                                    },
+                                    enabled = !isSaving
+                                ) {
+                                    Text("Quitar justificante")
+                                }
+                            }
+                        }
+                    }
+
                     Spacer(Modifier.height(70.dp))
                 }
             }
@@ -532,7 +640,7 @@ private fun ControlledDropdown(
                 .menuAnchor()
         )
 
-        DropdownMenu(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
@@ -546,5 +654,21 @@ private fun ControlledDropdown(
                 )
             }
         }
+    }
+}
+
+private fun readDisplayName(context: Context, uri: Uri): String? {
+    return context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+        if (!cursor.moveToFirst()) return@use null
+        val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (index >= 0) cursor.getString(index) else null
+    }
+}
+
+private fun readFileSizeBytes(context: Context, uri: Uri): Long? {
+    return context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+        if (!cursor.moveToFirst()) return@use null
+        val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+        if (index >= 0 && !cursor.isNull(index)) cursor.getLong(index) else null
     }
 }
