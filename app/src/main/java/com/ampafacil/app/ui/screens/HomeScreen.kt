@@ -33,7 +33,6 @@ import com.ampafacil.app.data.AmpaAppearance
 import com.ampafacil.app.data.FontStyleOption
 import com.ampafacil.app.data.Roles
 import com.ampafacil.app.data.ampaAppearanceFromMap
-import com.ampafacil.app.data.borderThicknessFrom
 import com.ampafacil.app.data.fontStyleFrom
 import com.ampafacil.app.data.parseHexColor
 import com.google.firebase.auth.FirebaseAuth
@@ -44,7 +43,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun HomeScreen(
     onLogout: () -> Unit,
     onAddChild: () -> Unit,
-    onOpenAppearance: () -> Unit
+    onOpenAppearance: () -> Unit,
+    onOpenPaymentsReview: () -> Unit,
+    onOpenCollaborators: () -> Unit,
+    onOpenAmpaCommunity: () -> Unit,
+    onOpenFamilyCollaboration: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
@@ -64,7 +67,7 @@ fun HomeScreen(
 
                 if (ampaCode.isNullOrBlank()) return@addOnSuccessListener
 
-                // Aquí leemos el rol del miembro para saber si enseñamos el botón de apariencia.
+                // Aquí leemos el rol del miembro para saber qué menú enseñamos.
                 db.collection("ampas").document(ampaCode)
                     .collection("members").document(uid).get()
                     .addOnSuccessListener { memberDoc ->
@@ -88,8 +91,10 @@ fun HomeScreen(
     val backgroundColor = parseHexColor(appearance.backgroundColor, Color(0xFFF7F9FC))
     val primaryColor = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
     val secondaryColor = parseHexColor(appearance.secondaryColor, Color(0xFF2E7D32))
-    val borderThickness = borderThicknessFrom(appearance.borderThickness)
-    val borderWidth = (borderThickness.dp).dp
+
+    // De momento dejamos el borde fijo para no mezclar este ajuste con el helper del grosor.
+    val borderWidth = 2.dp
+
     val fontStyle = fontStyleFrom(appearance.fontStyle)
 
     val fontFamily = when (fontStyle) {
@@ -160,17 +165,19 @@ fun HomeScreen(
                         .background(backgroundColor)
                         .padding(12.dp)
                 ) {
-                    Button(
-                        onClick = onAddChild,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = buttonColors
-                    ) {
-                        Text("Añadir hijo o hija", fontFamily = fontFamily)
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
+                    // Aquí enseñamos un menú distinto según el rol.
+                    // La directiva ve gestión interna y la familia ve participación.
                     if (isDirector) {
+                        Button(
+                            onClick = onOpenPaymentsReview,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Revisión de pagos", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
                         Button(
                             onClick = onOpenAppearance,
                             modifier = Modifier.fillMaxWidth(),
@@ -180,18 +187,79 @@ fun HomeScreen(
                         }
 
                         Spacer(Modifier.height(10.dp))
-                    }
 
-                    Button(
-                        onClick = {
-                            // Aquí cerramos la sesión y volvemos al flujo de acceso.
-                            auth.signOut()
-                            onLogout()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = buttonColors
-                    ) {
-                        Text("Cerrar sesión", fontFamily = fontFamily)
+                        Button(
+                            onClick = onOpenCollaborators,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Colaboradores del AMPA", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        Button(
+                            onClick = onOpenAmpaCommunity,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Comunidad de AMPAS", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        Button(
+                            onClick = {
+                                auth.signOut()
+                                onLogout()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Cerrar sesión", fontFamily = fontFamily)
+                        }
+
+                    } else {
+                        Button(
+                            onClick = onAddChild,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Añadir hijo o hija", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        Button(
+                            onClick = onOpenFamilyCollaboration,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Colabora con el AMPA", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        Button(
+                            onClick = onOpenAmpaCommunity,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Comunidad de AMPAS", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        Button(
+                            onClick = {
+                                auth.signOut()
+                                onLogout()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Cerrar sesión", fontFamily = fontFamily)
+                        }
                     }
                 }
             }

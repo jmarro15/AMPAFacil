@@ -125,8 +125,40 @@ fun AppNavGraph() {
                         launchSingleTop = true
                     }
                 },
-                onAddChild = { navController.navigate(Routes.FAMILY_CHILDREN) },
-                onOpenAppearance = { navController.navigate(Routes.APPEARANCE) }
+                onAddChild = {
+                    navController.navigate(Routes.FAMILY_CHILDREN)
+                },
+                onOpenAppearance = {
+                    navController.navigate(Routes.APPEARANCE)
+                },
+                onOpenPaymentsReview = {
+                    // Aquí dejamos preparado el callback para la futura pantalla de revisión de pagos.
+                    // De momento volvemos a Home porque aún no existe la ruta definitiva.
+                    navController.navigate(Routes.HOME) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenCollaborators = {
+                    // Aquí dejamos preparado el callback para la futura pantalla de colaboradores del AMPA.
+                    // De momento volvemos a Home porque aún no existe la ruta definitiva.
+                    navController.navigate(Routes.HOME) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenAmpaCommunity = {
+                    // Aquí dejamos preparado el callback para la futura comunidad de AMPAS.
+                    // De momento volvemos a Home porque aún no existe la ruta definitiva.
+                    navController.navigate(Routes.HOME) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenFamilyCollaboration = {
+                    // Aquí dejamos preparado el callback para la futura pantalla donde la familia podrá ofrecer ayuda.
+                    // De momento volvemos a Home porque aún no existe la ruta definitiva.
+                    navController.navigate(Routes.HOME) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
     }

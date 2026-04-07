@@ -1,12 +1,43 @@
-// File: app/src/main/java/com/ampafacil/app/ui/screens/FamilyChildrenScreen.kt
 package com.ampafacil.app.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -14,8 +45,12 @@ import androidx.compose.ui.unit.dp
 import com.ampafacil.app.data.SchoolCatalog
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+
+private const val MIN_CHILDREN = 1
+private const val MAX_CHILDREN = 6
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,11 +67,11 @@ fun FamilyChildrenScreen(
 
     var isLoadingAmpaCode by remember { mutableStateOf(true) }
     var ampaCode by remember { mutableStateOf<String?>(null) }
-
     var isSaving by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Aquí controlamos cuántos hijos se están editando.
-    var childrenCount by remember { mutableStateOf(1) }
+    var childrenCount by remember { mutableStateOf(MIN_CHILDREN) }
 
     // Aquí guardamos el estado del formulario para cada hijo.
     var children by remember { mutableStateOf(List(childrenCount) { ChildFormState() }) }
@@ -66,9 +101,9 @@ fun FamilyChildrenScreen(
             }
     }
 
-    // Aquí aseguramos que la lista tenga el tamaño correcto cuando cambia el número de hijos.
+    // Aquí ajustamos la lista al número de hijos para no perder el orden del formulario.
     fun resizeChildrenList(newCount: Int) {
-        val safe = newCount.coerceIn(1, 6)
+        val safe = newCount.coerceIn(MIN_CHILDREN, MAX_CHILDREN)
         childrenCount = safe
 
         val current = children
@@ -88,8 +123,11 @@ fun FamilyChildrenScreen(
 
     fun validateForm(): String? {
         if (uid.isNullOrBlank()) return "No hay sesión iniciada."
+
         val code = ampaCode
-        if (code.isNullOrBlank() || code.length != 6) return "No tenemos un AMPA activo. Volvemos atrás y reintentamos."
+        if (code.isNullOrBlank() || code.length != 6) {
+            return "No tenemos un AMPA activo válido. Volvemos atrás y reintentamos."
+        }
 
         children.forEachIndexed { i, c ->
             val pos = i + 1
@@ -101,8 +139,8 @@ fun FamilyChildrenScreen(
             if (!SchoolCatalog.cursosPorCiclo(c.ciclo).contains(c.curso)) return "Curso inválido en hijo $pos."
             if (!SchoolCatalog.clases.contains(c.clase)) return "Clase inválida en hijo $pos."
 
-            if (c.alergico && c.alergiasDetalle.trim().isBlank()) {
-                return "Falta indicar a qué es alérgico el hijo $pos."
+            if (c.alergico && c.alergiasDetalle.trim().length < 3) {
+                return "Necesitamos más detalle de alergias en el hijo $pos (mínimo 3 letras)."
             }
         }
         return null
@@ -111,6 +149,7 @@ fun FamilyChildrenScreen(
     fun saveAll() {
         val error = validateForm()
         if (error != null) {
+            errorMessage = error
             Toast.makeText(context, error, Toast.LENGTH_LONG).show()
             return
         }
@@ -120,15 +159,17 @@ fun FamilyChildrenScreen(
         val code = ampaCode!!
 
         isSaving = true
+        errorMessage = null
 
         val memberRef = db.collection("ampas").document(code)
             .collection("members").document(uidReal)
 
-        // Aquí leemos el contador anterior para poder borrar hijos sobrantes si se reduce el número.
+        // Aquí leemos los hijos actuales para no pisar createdAt por suposición de contador.
         memberRef.get()
             .addOnSuccessListener { memberDoc ->
-                val oldCount = (memberDoc.getLong("childrenCount") ?: 0L).toInt()
+                val oldCount = (memberDoc.getLong("childrenCount") ?: 0L).toInt().coerceAtLeast(0)
                 val now = Timestamp.now()
+                val childrenCollectionRef = memberRef.collection("children")
 
                 // Aquí actualizamos el resumen del miembro (contador y fecha de actualización).
                 val memberUpdate = hashMapOf(
@@ -137,54 +178,77 @@ fun FamilyChildrenScreen(
                     "updatedAt" to now
                 )
 
-                val batch = db.batch()
-                batch.set(memberRef, memberUpdate, SetOptions.merge())
+                childrenCollectionRef.get()
+                    .addOnSuccessListener { childrenSnapshot ->
+                        val existingChildIds = childrenSnapshot.documents.map { it.id }.toSet()
+                        val batch = db.batch()
+                        batch.set(memberRef, memberUpdate, SetOptions.merge())
 
-                // Aquí guardamos cada hijo en su documento estable child_1, child_2...
-                children.take(childrenCount).forEachIndexed { index, child ->
-                    val childId = "child_${index + 1}"
-                    val childRef = memberRef.collection("children").document(childId)
+                        // Aquí guardamos cada hijo en su documento estable child_1, child_2...
+                        children.take(childrenCount).forEachIndexed { index, child ->
+                            val childNumber = index + 1
+                            val childId = "child_$childNumber"
+                            val childRef = childrenCollectionRef.document(childId)
 
-                    val childData = hashMapOf<String, Any>(
-                        "nombre" to child.nombre.trim(),
-                        "apellidos" to child.apellidos.trim(),
-                        "ciclo" to child.ciclo,
-                        "curso" to child.curso,
-                        "clase" to child.clase,
-                        "alergico" to child.alergico,
-                        "alergiasDetalle" to (if (child.alergico) child.alergiasDetalle.trim() else ""),
-                        // Aquí metemos campos para filtros globales con collectionGroup.
-                        "ampaCode" to code,
-                        "memberUid" to uidReal,
-                        "updatedAt" to now,
-                        "createdAt" to now
-                    )
+                            val nombre = child.nombre.trim()
+                            val apellidos = child.apellidos.trim()
+                            val alergiasDetalle = if (child.alergico) child.alergiasDetalle.trim() else ""
 
-                    batch.set(childRef, childData, SetOptions.merge())
-                }
+                            val childData = hashMapOf<String, Any>(
+                                "nombre" to nombre,
+                                "apellidos" to apellidos,
+                                "nombreCompleto" to "$nombre $apellidos".trim(),
+                                "ciclo" to child.ciclo,
+                                "curso" to child.curso,
+                                "cursoLabel" to SchoolCatalog.labelCurso(child.curso),
+                                "clase" to child.clase,
+                                "alergico" to child.alergico,
+                                "tieneAlergias" to child.alergico,
+                                "alergiasDetalle" to alergiasDetalle,
+                                // Aquí metemos campos para filtros globales con collectionGroup.
+                                "ampaCode" to code,
+                                "memberUid" to uidReal,
+                                "updatedAt" to now
+                            )
 
-                // Aquí borramos los hijos sobrantes si antes había más y ahora menos.
-                if (oldCount > childrenCount) {
-                    for (k in (childrenCount + 1)..oldCount) {
-                        val childRef = memberRef.collection("children").document("child_$k")
-                        batch.delete(childRef)
-                    }
-                }
+                            // Aquí protegemos createdAt revisando existencia real del documento.
+                            if (!existingChildIds.contains(childId)) {
+                                childData["createdAt"] = FieldValue.serverTimestamp()
+                            }
 
-                batch.commit()
-                    .addOnSuccessListener {
-                        isSaving = false
-                        Toast.makeText(context, "Datos de hijos guardados ✅", Toast.LENGTH_SHORT).show()
-                        onDone()
+                            batch.set(childRef, childData, SetOptions.merge())
+                        }
+
+                        // Aquí borramos los hijos sobrantes si antes había más y ahora menos.
+                        if (oldCount > childrenCount) {
+                            for (k in (childrenCount + 1)..oldCount) {
+                                val childRef = childrenCollectionRef.document("child_$k")
+                                batch.delete(childRef)
+                            }
+                        }
+
+                        batch.commit()
+                            .addOnSuccessListener {
+                                isSaving = false
+                                Toast.makeText(context, "Datos de hijos guardados ✅", Toast.LENGTH_SHORT).show()
+                                onDone()
+                            }
+                            .addOnFailureListener { e ->
+                                isSaving = false
+                                errorMessage = "No pudimos guardar los hijos. ${e.message ?: "Reintentamos en unos segundos."}"
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                            }
                     }
                     .addOnFailureListener { e ->
                         isSaving = false
-                        Toast.makeText(context, "Error guardando hijos: ${e.message}", Toast.LENGTH_LONG).show()
+                        errorMessage = "No pudimos revisar los hijos actuales. ${e.message ?: "Reintentamos en unos segundos."}"
+                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
                     }
             }
             .addOnFailureListener { e ->
                 isSaving = false
-                Toast.makeText(context, "Error leyendo miembro: ${e.message}", Toast.LENGTH_LONG).show()
+                errorMessage = "No pudimos leer los datos actuales. ${e.message ?: "Reintentamos en unos segundos."}"
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
             }
     }
 
@@ -232,14 +296,10 @@ fun FamilyChildrenScreen(
     ) { padding ->
         when {
             uid == null -> {
-                Column(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) { Text("No hay sesión iniciada.") }
+                CenterMessage(
+                    modifier = Modifier.padding(padding),
+                    text = "No hay sesión iniciada."
+                )
             }
 
             isLoadingAmpaCode -> {
@@ -286,12 +346,25 @@ fun FamilyChildrenScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
 
-                    // Número de hijos (1..6)
+                    errorMessage?.let { msg ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = msg,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
                     ControlledDropdown(
                         label = "Número de hijos",
-                        options = (1..6).map { it.toString() },
+                        options = (MIN_CHILDREN..MAX_CHILDREN).map { it.toString() },
                         selected = childrenCount.toString(),
-                        onSelected = { resizeChildrenList(it.toInt()) },
+                        onSelected = { selected ->
+                            resizeChildrenList(selected.toInt())
+                            errorMessage = null
+                        },
                         optionLabel = { it }
                     )
 
@@ -299,7 +372,10 @@ fun FamilyChildrenScreen(
                         ChildCard(
                             index = index,
                             state = child,
-                            onChange = { updateChild(index, it) }
+                            onChange = {
+                                updateChild(index, it)
+                                errorMessage = null
+                            }
                         )
                     }
 
@@ -307,6 +383,22 @@ fun FamilyChildrenScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CenterMessage(
+    modifier: Modifier = Modifier,
+    text: String
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text)
     }
 }
 
@@ -354,13 +446,14 @@ private fun ChildCard(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Ciclo
+            HorizontalDivider()
+
             ControlledDropdown(
                 label = "Ciclo",
                 options = SchoolCatalog.ciclos,
                 selected = state.ciclo,
                 onSelected = { newCiclo ->
-                    // Aquí, al cambiar ciclo, ajustamos curso a uno válido.
+                    // Aquí, al cambiar ciclo, ajustamos curso a uno válido para evitar estados imposibles.
                     val cursos = SchoolCatalog.cursosPorCiclo(newCiclo)
                     val newCurso = if (cursos.contains(state.curso)) state.curso else (cursos.firstOrNull() ?: "")
                     onChange(state.copy(ciclo = newCiclo, curso = newCurso))
@@ -368,7 +461,6 @@ private fun ChildCard(
                 optionLabel = { it }
             )
 
-            // Curso (depende del ciclo)
             val cursosDisponibles = SchoolCatalog.cursosPorCiclo(state.ciclo)
             ControlledDropdown(
                 label = "Curso",
@@ -378,7 +470,6 @@ private fun ChildCard(
                 optionLabel = { SchoolCatalog.labelCurso(it) }
             )
 
-            // Clase
             ControlledDropdown(
                 label = "Clase",
                 options = SchoolCatalog.clases,
@@ -393,7 +484,10 @@ private fun ChildCard(
             ) {
                 Switch(
                     checked = state.alergico,
-                    onCheckedChange = { onChange(state.copy(alergico = it)) }
+                    onCheckedChange = { checked ->
+                        // Aquí limpiamos detalle si no hay alergia para guardar datos consistentes.
+                        onChange(state.copy(alergico = checked, alergiasDetalle = if (checked) state.alergiasDetalle else ""))
+                    }
                 )
                 Text("¿Alérgico?")
             }
@@ -421,13 +515,14 @@ private fun ControlledDropdown(
     optionLabel: (String) -> String
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val safeSelected = options.firstOrNull { it == selected } ?: options.firstOrNull().orEmpty()
 
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded }
     ) {
         OutlinedTextField(
-            value = optionLabel(selected),
+            value = optionLabel(safeSelected),
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
@@ -437,7 +532,7 @@ private fun ControlledDropdown(
                 .menuAnchor()
         )
 
-        ExposedDropdownMenu(
+        DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
