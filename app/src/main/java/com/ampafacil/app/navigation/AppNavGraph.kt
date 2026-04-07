@@ -132,34 +132,56 @@ fun AppNavGraph() {
                     navController.navigate(Routes.APPEARANCE)
                 },
                 onOpenPaymentsReview = {
-                    // Aquí dejamos preparado el callback para la futura pantalla de revisión de pagos.
-                    // De momento volvemos a Home porque aún no existe la ruta definitiva.
-                    navController.navigate(Routes.HOME) {
+                    navController.navigate(Routes.PAYMENTS_REVIEW) {
                         launchSingleTop = true
                     }
                 },
                 onOpenCollaborators = {
-                    // Aquí dejamos preparado el callback para la futura pantalla de colaboradores del AMPA.
-                    // De momento volvemos a Home porque aún no existe la ruta definitiva.
-                    navController.navigate(Routes.HOME) {
+                    navController.navigate(Routes.COLLABORATORS) {
                         launchSingleTop = true
                     }
                 },
                 onOpenAmpaCommunity = {
-                    // Aquí dejamos preparado el callback para la futura comunidad de AMPAS.
-                    // De momento volvemos a Home porque aún no existe la ruta definitiva.
-                    navController.navigate(Routes.HOME) {
+                    navController.navigate(Routes.AMPA_COMMUNITY) {
                         launchSingleTop = true
                     }
                 },
                 onOpenFamilyCollaboration = {
-                    // Aquí dejamos preparado el callback para la futura pantalla donde la familia podrá ofrecer ayuda.
-                    // De momento volvemos a Home porque aún no existe la ruta definitiva.
-                    navController.navigate(Routes.HOME) {
+                    navController.navigate(Routes.FAMILY_COLLABORATION) {
                         launchSingleTop = true
                     }
                 }
             )
+        }
+
+        // Aquí dejamos rutas provisionales para que la navegación ya exista.
+        // Más adelante sustituiremos este redireccionamiento por pantallas reales.
+        composable(Routes.PAYMENTS_REVIEW) {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.PAYMENTS_REVIEW) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+
+        composable(Routes.COLLABORATORS) {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.COLLABORATORS) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+
+        composable(Routes.AMPA_COMMUNITY) {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.AMPA_COMMUNITY) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+
+        composable(Routes.FAMILY_COLLABORATION) {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.FAMILY_COLLABORATION) { inclusive = true }
+                launchSingleTop = true
+            }
         }
     }
 }

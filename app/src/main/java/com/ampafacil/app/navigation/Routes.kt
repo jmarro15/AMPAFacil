@@ -10,4 +10,10 @@ object Routes {
     const val AMPA_SPLASH = "ampa_splash"
     const val APPEARANCE = "appearance"
     const val HOME = "home"
+
+    // Aquí dejamos preparadas las rutas futuras para seguir creciendo sin rehacer la base.
+    const val PAYMENTS_REVIEW = "payments_review"
+    const val COLLABORATORS = "collaborators"
+    const val AMPA_COMMUNITY = "ampa_community"
+    const val FAMILY_COLLABORATION = "family_collaboration"
 }
