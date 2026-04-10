@@ -1,6 +1,7 @@
 // File: app/src/main/java/com/ampafacil/app/navigation/AppNavGraph.kt
 package com.ampafacil.app.navigation
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,6 +14,9 @@ import com.ampafacil.app.ui.screens.CreateAmpaScreen
 import com.ampafacil.app.ui.screens.FamilyChildrenScreen
 import com.ampafacil.app.ui.screens.HomeScreen
 import com.ampafacil.app.ui.screens.StartRouterScreen
+import com.ampafacil.app.ui.screens.FamilyDirectoryScreen
+
+private const val FAMILY_DIRECTORY_ROUTE = "family_directory"
 
 @Composable
 fun AppNavGraph() {
@@ -117,6 +121,13 @@ fun AppNavGraph() {
             )
         }
 
+        // Nueva ruta interna para el buscador de familias desde Home.
+        composable(FAMILY_DIRECTORY_ROUTE) {
+            // Dejamos la navegación lista para conectar la pantalla real cuando esté creada.
+            FamilyDirectoryScreen(onBack = { navController.popBackStack() })
+            //Text("Directorio de familias")
+        }
+
         composable(Routes.HOME) {
             HomeScreen(
                 onLogout = {
@@ -126,7 +137,9 @@ fun AppNavGraph() {
                     }
                 },
                 onAddChild = { navController.navigate(Routes.FAMILY_CHILDREN) },
-                onOpenAppearance = { navController.navigate(Routes.APPEARANCE) }
+                onOpenAppearance = { navController.navigate(Routes.APPEARANCE) },
+                // Este callback conecta el botón "Buscar familias" con su nueva ruta.
+                onOpenFamilyDirectory = { navController.navigate(FAMILY_DIRECTORY_ROUTE) }
             )
         }
     }

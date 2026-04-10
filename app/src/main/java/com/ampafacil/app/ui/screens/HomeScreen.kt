@@ -44,7 +44,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun HomeScreen(
     onLogout: () -> Unit,
     onAddChild: () -> Unit,
-    onOpenAppearance: () -> Unit
+    onOpenAppearance: () -> Unit,
+    onOpenFamilyDirectory: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
@@ -160,6 +161,19 @@ fun HomeScreen(
                         .background(backgroundColor)
                         .padding(12.dp)
                 ) {
+                    // Este acceso solo sale para la directiva y va el primero dentro de sus acciones.
+                    if (isDirector) {
+                        Button(
+                            onClick = onOpenFamilyDirectory,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Buscar familias", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+                    }
+
                     Button(
                         onClick = onAddChild,
                         modifier = Modifier.fillMaxWidth(),
