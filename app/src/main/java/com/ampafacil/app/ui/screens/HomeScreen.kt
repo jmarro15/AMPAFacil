@@ -171,17 +171,17 @@ fun HomeScreen(
 
                     Spacer(Modifier.height(10.dp))
 
-                    if (isDirector) {
-                        Button(
-                            onClick = onOpenAppearance,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = buttonColors
-                        ) {
-                            Text("Apariencia del AMPA", fontFamily = fontFamily)
-                        }
-
-                        Spacer(Modifier.height(10.dp))
+                    // Aquí dejamos esta opción para cualquier usuario del AMPA,
+                    // porque la directiva también puede necesitar completar o corregir sus datos personales.
+                    Button(
+                        onClick = onOpenPersonalData,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = buttonColors
+                    ) {
+                        Text("Mis datos personales", fontFamily = fontFamily)
                     }
+
+                    Spacer(Modifier.height(10.dp))
 
                     // Esta opción se enseña solo a familias porque la directiva ya gestiona sus datos en otro flujo.
                     if (!isDirector) {
