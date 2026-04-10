@@ -59,24 +59,28 @@ fun HomeScreen(
 
         db.collection("users").document(uid).get()
             .addOnSuccessListener { userDoc ->
+                // Aquí intentamos enseñar el nombre del usuario si ya lo tenemos guardado.
                 userName = userDoc.getString("nombre") ?: ""
+
                 val ampaCode = userDoc.getString("activeAmpaCode")?.trim()
                     ?: userDoc.getString("ampaCode")?.trim()
 
                 if (ampaCode.isNullOrBlank()) return@addOnSuccessListener
 
-                // Aquí leemos el rol del miembro para saber si enseñamos el botón de apariencia.
+                // Aquí leemos el rol real del usuario dentro del AMPA.
                 db.collection("ampas").document(ampaCode)
                     .collection("members").document(uid).get()
                     .addOnSuccessListener { memberDoc ->
                         role = (memberDoc.getString("role") ?: "").uppercase()
                     }
 
-                // Aquí leemos la apariencia guardada del AMPA para aplicarla a Home.
+                // Aquí cargamos la apariencia guardada del AMPA para aplicar colores y estilos.
                 db.collection("ampas").document(ampaCode).get()
                     .addOnSuccessListener { ampaDoc ->
                         val schoolName = ampaDoc.getString("schoolName") ?: ""
-                        val loaded = ampaAppearanceFromMap(ampaDoc.get("themeConfig") as? Map<String, Any>)
+                        val loaded =
+                            ampaAppearanceFromMap(ampaDoc.get("themeConfig") as? Map<String, Any>)
+
                         appearance = loaded.copy(
                             schoolName = if (loaded.schoolName.isBlank()) schoolName else loaded.schoolName
                         )
@@ -84,13 +88,17 @@ fun HomeScreen(
             }
     }
 
-    val isDirector = role == Roles.PRESIDENT || role == Roles.SECRETARY || role == Roles.VICEPRESIDENT
+    // Aquí decidimos si el usuario pertenece a la directiva.
+    val isDirector =
+        role == Roles.PRESIDENT || role == Roles.SECRETARY || role == Roles.VICEPRESIDENT
 
     val backgroundColor = parseHexColor(appearance.backgroundColor, Color(0xFFF7F9FC))
     val primaryColor = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
     val secondaryColor = parseHexColor(appearance.secondaryColor, Color(0xFF2E7D32))
+
     val borderThickness = borderThicknessFrom(appearance.borderThickness)
-    val borderWidth = (borderThickness.dp).dp
+    val borderWidth = borderThickness.dp.dp
+
     val fontStyle = fontStyleFrom(appearance.fontStyle)
 
     val fontFamily = when (fontStyle) {
@@ -135,7 +143,7 @@ fun HomeScreen(
                 fontFamily = fontFamily
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Bienvenido/a al menú de tu AMPA.",
@@ -143,7 +151,7 @@ fun HomeScreen(
                 fontFamily = fontFamily
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 modifier = Modifier
@@ -161,6 +169,8 @@ fun HomeScreen(
                         .background(backgroundColor)
                         .padding(12.dp)
                 ) {
+                    // Aquí dejamos este botón visible para cualquier usuario,
+                    // porque tanto familias como directiva pueden necesitar registrar hijos.
                     Button(
                         onClick = onAddChild,
                         modifier = Modifier.fillMaxWidth(),
@@ -169,10 +179,10 @@ fun HomeScreen(
                         Text("Añadir hijo o hija", fontFamily = fontFamily)
                     }
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     // Aquí dejamos esta opción para cualquier usuario del AMPA,
-                    // porque la directiva también puede necesitar completar o corregir sus datos personales.
+                    // porque la directiva también puede consultar o corregir sus datos.
                     Button(
                         onClick = onOpenPersonalData,
                         modifier = Modifier.fillMaxWidth(),
@@ -181,24 +191,24 @@ fun HomeScreen(
                         Text("Mis datos personales", fontFamily = fontFamily)
                     }
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Esta opción se enseña solo a familias porque la directiva ya gestiona sus datos en otro flujo.
-                    if (!isDirector) {
+                    // Aquí enseñamos el botón de apariencia solo a la directiva.
+                    if (isDirector) {
                         Button(
-                            onClick = onOpenPersonalData,
+                            onClick = onOpenAppearance,
                             modifier = Modifier.fillMaxWidth(),
                             colors = buttonColors
                         ) {
-                            Text("Mis datos personales", fontFamily = fontFamily)
+                            Text("Apariencia del AMPA", fontFamily = fontFamily)
                         }
 
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
 
+                    // Aquí cerramos sesión para cualquier usuario.
                     Button(
                         onClick = {
-                            // Aquí cerramos la sesión y volvemos al flujo de acceso.
                             auth.signOut()
                             onLogout()
                         },
