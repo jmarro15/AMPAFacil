@@ -10,4 +10,5 @@ object Routes {
     const val AMPA_SPLASH = "ampa_splash"
     const val APPEARANCE = "appearance"
     const val HOME = "home"
+    const val PERSONAL_DATA = "personal_data"
 }

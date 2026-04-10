@@ -12,6 +12,7 @@ import com.ampafacil.app.ui.screens.AuthScreen
 import com.ampafacil.app.ui.screens.CreateAmpaScreen
 import com.ampafacil.app.ui.screens.FamilyChildrenScreen
 import com.ampafacil.app.ui.screens.HomeScreen
+import com.ampafacil.app.ui.screens.PersonalDataScreen
 import com.ampafacil.app.ui.screens.StartRouterScreen
 
 @Composable
@@ -62,6 +63,7 @@ fun AppNavGraph() {
                 onAuthSuccess = {
                     navController.navigate(Routes.START) {
                         popUpTo(Routes.AUTH) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -72,18 +74,24 @@ fun AppNavGraph() {
                 onCodeAccepted = {
                     navController.navigate(Routes.START) {
                         popUpTo(Routes.AMPA_CODE) { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
-                onCreateAmpa = { navController.navigate(Routes.CREATE_AMPA) }
+                onCreateAmpa = {
+                    navController.navigate(Routes.CREATE_AMPA)
+                }
             )
         }
 
         composable(Routes.CREATE_AMPA) {
             CreateAmpaScreen(
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    navController.popBackStack()
+                },
                 onDone = {
                     navController.navigate(Routes.START) {
                         popUpTo(Routes.CREATE_AMPA) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -91,10 +99,13 @@ fun AppNavGraph() {
 
         composable(Routes.FAMILY_CHILDREN) {
             FamilyChildrenScreen(
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    navController.popBackStack()
+                },
                 onDone = {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.FAMILY_CHILDREN) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -113,7 +124,9 @@ fun AppNavGraph() {
 
         composable(Routes.APPEARANCE) {
             AppearanceScreen(
-                onBack = { navController.popBackStack() }
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -125,8 +138,23 @@ fun AppNavGraph() {
                         launchSingleTop = true
                     }
                 },
-                onAddChild = { navController.navigate(Routes.FAMILY_CHILDREN) },
-                onOpenAppearance = { navController.navigate(Routes.APPEARANCE) }
+                onAddChild = {
+                    navController.navigate(Routes.FAMILY_CHILDREN)
+                },
+                onOpenAppearance = {
+                    navController.navigate(Routes.APPEARANCE)
+                },
+                onOpenPersonalData = {
+                    navController.navigate(Routes.PERSONAL_DATA)
+                }
+            )
+        }
+
+        composable(Routes.PERSONAL_DATA) {
+            PersonalDataScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
             )
         }
     }

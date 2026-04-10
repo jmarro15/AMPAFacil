@@ -44,7 +44,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun HomeScreen(
     onLogout: () -> Unit,
     onAddChild: () -> Unit,
-    onOpenAppearance: () -> Unit
+    onOpenAppearance: () -> Unit,
+    onOpenPersonalData: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
@@ -177,6 +178,19 @@ fun HomeScreen(
                             colors = buttonColors
                         ) {
                             Text("Apariencia del AMPA", fontFamily = fontFamily)
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+                    }
+
+                    // Esta opción se enseña solo a familias porque la directiva ya gestiona sus datos en otro flujo.
+                    if (!isDirector) {
+                        Button(
+                            onClick = onOpenPersonalData,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Mis datos personales", fontFamily = fontFamily)
                         }
 
                         Spacer(Modifier.height(10.dp))
