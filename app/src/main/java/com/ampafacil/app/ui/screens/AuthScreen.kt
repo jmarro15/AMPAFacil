@@ -43,6 +43,8 @@ fun AuthScreen(
 
     // // Yo controlo si estoy “cargando” para no dejar pulsar muchas veces seguidas
     var isLoading by remember { mutableStateOf(false) }
+    // // Yo uso esta variable para ocultar las sugerencias cuando el usuario ya ha elegido una opción
+    var hideSuggestions by remember { mutableStateOf(false) }
 
     // // Yo uso esto para enseñar mensajes rápidos en pantalla
     val context = LocalContext.current
@@ -168,7 +170,9 @@ fun AuthScreen(
     val shouldShowEmailSuggestions =
         hasAtSymbol &&
                 localPart.isNotBlank() &&
-                !typedDomain.contains(" ")
+                !typedDomain.contains(" ") &&
+                !hideSuggestions &&
+    !typedDomain.contains(".")
 
     // // Yo filtro los dominios para enseñar solo los que encajan con lo escrito.
     // // Si después de la arroba aún no hay nada, enseño todas las opciones.
@@ -197,6 +201,8 @@ fun AuthScreen(
                 // // Yo actualizo el email tal como lo va escribiendo el usuario
                 // // y evito saltos de línea para mantener el campo limpio
                 email = newValue.replace("\n", "")
+                // // Yo vuelvo a permitir sugerencias si el usuario sigue escribiendo
+                hideSuggestions = false
             },
             label = { Text("Email") },
             singleLine = true,
@@ -214,9 +220,10 @@ fun AuthScreen(
                 items(filteredDomains) { domain ->
                     SuggestionChip(
                         onClick = {
-                            // // Yo completo el correo al tocar una sugerencia
-                            // // Por ejemplo: nano@ se convierte en nano@gmail.com
                             email = "$localPart@$domain"
+
+                            // // Aquí ocultamos las sugerencias tras elegir
+                            hideSuggestions = true
                         },
                         label = { Text(domain) }
                     )
@@ -225,7 +232,8 @@ fun AuthScreen(
                 item {
                     SuggestionChip(
                         onClick = {
-                            // // Yo no cambio nada si se prefiere seguir escribiendo a mano
+                            // // Yo no autocompleto nada y simplemente oculto las sugerencias
+                            hideSuggestions = true
                         },
                         label = { Text("Seguir escribiendo") }
                     )
