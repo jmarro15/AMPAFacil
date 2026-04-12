@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -242,22 +245,35 @@ fun FamilyDirectoryScreen(
 
                             Spacer(Modifier.height(4.dp))
 
-                            Text(
-                                text = "Teléfono: ${family.phone}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                // El teléfono se puede pulsar para abrir el marcador con el número cargado.
-                                modifier = Modifier.clickable {
-                                    val phone = family.phone.trim()
-                                    if (phone.isNotBlank()) {
-                                        // Usamos ACTION_DIAL para evitar permisos de llamada directa.
-                                        val dialIntent = Intent(
-                                            Intent.ACTION_DIAL,
-                                            Uri.parse("tel:$phone")
-                                        )
-                                        context.startActivity(dialIntent)
-                                    }
-                                }
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    // La fila completa es pulsable para que se entienda mejor la acción.
+                                    .clickable {
+                                        val phone = family.phone.trim()
+                                        if (phone.isNotBlank()) {
+                                            // Usamos ACTION_DIAL para evitar permisos de llamada directa.
+                                            val dialIntent = Intent(
+                                                Intent.ACTION_DIAL,
+                                                Uri.parse("tel:$phone")
+                                            )
+                                            context.startActivity(dialIntent)
+                                        }
+                                    },
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Teléfono: ${family.phone}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(
+                                    imageVector = Icons.Filled.Phone,
+                                    contentDescription = "Llamar",
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
 
                             Spacer(Modifier.height(8.dp))
 
