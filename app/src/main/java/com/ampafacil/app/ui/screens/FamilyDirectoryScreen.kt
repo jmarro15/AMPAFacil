@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -247,7 +249,6 @@ fun FamilyDirectoryScreen(
 
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
                                     // La fila completa es pulsable para que se entienda mejor la acción.
                                     .clickable {
                                         val phone = family.phone.trim()
@@ -260,13 +261,13 @@ fun FamilyDirectoryScreen(
                                             context.startActivity(dialIntent)
                                         }
                                     },
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "Teléfono: ${family.phone}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f)
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Icon(
                                     imageVector = Icons.Filled.Phone,
                                     contentDescription = "Llamar",
