@@ -30,7 +30,9 @@ class CreateAmpaViewModel : ViewModel() {
         provincePrefix: String,
         provincia: String,
         localidad: String,
+        schoolType: String,
         schoolName: String,
+        ampaName: String,
         schoolCode8Chars: String,
         role: String,
         nombre: String,
@@ -56,9 +58,10 @@ class CreateAmpaViewModel : ViewModel() {
            Así evitamos que se cuele un "PRESI" y dejamos todo listo para reglas futuras. */
         val normalizedRole = normalizeRole(role)
 
-        /* Aquí generamos un código de 6 dígitos y comprobamos que no exista en ampas/{code}.
+        /* Aquí generamos el código AMPA (prefijo provincial + 4 cifras) y comprobamos que no exista.
            Es una comprobación sencilla para evitar colisiones. */
         generateUniqueAmpaCode(
+            provincePrefix = provincePrefix,
             onOk = { ampaCode ->
                 val now = Timestamp.now()
 
@@ -78,8 +81,10 @@ class CreateAmpaViewModel : ViewModel() {
                     "localidad" to localidad.trim(),
                     "provincia" to provincia.trim(),
                     "provincePrefix" to provincePrefix.trim(),
+                    "schoolType" to schoolType.trim(),
                     "schoolCode" to schoolCode8Chars.trim(),
                     "schoolName" to schoolName.trim(),
+                    "ampaName" to ampaName.trim(),
                     "themeConfig" to hashMapOf(
                         "primaryColor" to "#1565C0",
                         "secondaryColor" to "#2E7D32",
@@ -161,19 +166,28 @@ class CreateAmpaViewModel : ViewModel() {
     }
 
     private fun generateUniqueAmpaCode(
+        provincePrefix: String,
         maxTries: Int = 12,
         onOk: (String) -> Unit,
         onFail: (String) -> Unit
     ) {
-        /* Aquí intentamos generar un código de 6 dígitos que no exista ya.
-           No es criptografía, es solo evitar choques en un MVP. */
+        /* Aquí formamos el código con el prefijo provincial + 4 cifras aleatorias.
+           Así queda más claro de qué provincia viene cada AMPA (ej. 41xxxx). */
+        val normalizedPrefix = provincePrefix.trim().padStart(2, '0').take(2)
+        if (normalizedPrefix.length != 2 || !normalizedPrefix.all { it.isDigit() }) {
+            onFail("Prefijo provincial inválido. Revisa la provincia seleccionada.")
+            return
+        }
+
+        /* Después comprobamos que el código no exista ya para evitar colisiones. */
         fun attempt(tryNum: Int) {
             if (tryNum > maxTries) {
                 onFail("No se pudo generar un código único. Probamos varias veces y seguía colisionando.")
                 return
             }
 
-            val candidate = Random.nextInt(100000, 1000000).toString() // 6 dígitos
+            val suffix = Random.nextInt(0, 10_000).toString().padStart(4, '0')
+            val candidate = "$normalizedPrefix$suffix"
 
             db.collection("ampas")
                 .document(candidate)

@@ -79,6 +79,7 @@ fun CreateAmpaScreen(
 
     /* Aquí definimos provincia y prefijo para guardar el dato completo. */
     data class Province(val name: String, val prefix: String)
+    data class SchoolTypeOption(val code: String, val label: String)
 
     val provinces = remember {
         listOf(
@@ -141,8 +142,34 @@ fun CreateAmpaScreen(
     var selectedProvince by remember { mutableStateOf<Province?>(null) }
 
     var localidad by remember { mutableStateOf("") }
+    var schoolType by remember { mutableStateOf("") }
+    var schoolTypeExpanded by remember { mutableStateOf(false) }
     var schoolName by remember { mutableStateOf("") }
+    var ampaName by remember { mutableStateOf("") }
     var schoolCode by remember { mutableStateOf("") }
+
+
+
+    /* Lista oficial de tipos de centro: mostramos texto largo, pero guardamos solo el código. */
+    val schoolTypeOptions = remember {
+        listOf(
+            SchoolTypeOption("EI / EEI", "Escuela Infantil / Escuela de Educación Infantil"),
+            SchoolTypeOption("CEI", "Centro de Educación Infantil"),
+            SchoolTypeOption("CEP", "Colegio de Educación Primaria"),
+            SchoolTypeOption("CEIP", "Colegio de Educación Infantil y Primaria"),
+            SchoolTypeOption("CRA", "Colegio Rural Agrupado"),
+            SchoolTypeOption("IES", "Instituto de Educación Secundaria"),
+            SchoolTypeOption("IESO", "Instituto de Educación Secundaria Obligatoria"),
+            SchoolTypeOption("CIFP / CIPFP", "Centro Integrado de Formación Profesional"),
+            SchoolTypeOption("CEPA / AEPA", "Educación Permanente de Adultos"),
+            SchoolTypeOption("CEIPSO", "Centro de Infantil, Primaria y Secundaria Obligatoria"),
+            SchoolTypeOption("CPI", "Centro Público Integrado"),
+            SchoolTypeOption("CEE", "Centro de Educación Especial"),
+            SchoolTypeOption("EOI", "Escuela Oficial de Idiomas"),
+            SchoolTypeOption("CPD / CPM / CSM", "Conservatorio"),
+            SchoolTypeOption("EA / EASD", "Escuela de Arte / Escuela de Arte y Superior de Diseño")
+        )
+    }
 
     var role by remember { mutableStateOf(Roles.PRESIDENT) }
 
@@ -189,13 +216,15 @@ fun CreateAmpaScreen(
     val buttonColors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.White)
 
     val isFormValid = remember(
-        selectedProvince, localidad, schoolName, schoolCode, role, nombre, apellidos, telefono
+        selectedProvince, localidad, schoolType, schoolName, ampaName, schoolCode, role, nombre, apellidos, telefono
     ) {
         val okProvince = selectedProvince != null
         val okSchoolCode = schoolCode.length == 8 && schoolCode.all { it.isLetterOrDigit() }
         okProvince &&
                 localidad.isNotBlank() &&
+                schoolType.isNotBlank() &&
                 schoolName.isNotBlank() &&
+                ampaName.isNotBlank() &&
                 okSchoolCode &&
                 role.isNotBlank() &&
                 nombre.isNotBlank() &&
@@ -353,10 +382,52 @@ fun CreateAmpaScreen(
 
                     Spacer(Modifier.height(10.dp))
 
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { schoolTypeExpanded = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val selectedSchoolType = schoolTypeOptions.firstOrNull { it.code == schoolType }
+                            Text(
+                                text = selectedSchoolType?.let { "${it.code} - ${it.label}" } ?: "Tipo de centro *",
+                                color = primaryColor,
+                                fontFamily = fontFamily
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = schoolTypeExpanded,
+                            onDismissRequest = { schoolTypeExpanded = false }
+                        ) {
+                            schoolTypeOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text("${option.code} - ${option.label}") },
+                                    onClick = {
+                                        // Guardamos solo el código corto para Firestore.
+                                        schoolType = option.code
+                                        schoolTypeExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
                     OutlinedTextField(
                         value = schoolName,
                         onValueChange = { schoolName = it },
                         label = { Text("Nombre del colegio *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = ampaName,
+                        onValueChange = { ampaName = it },
+                        label = { Text("Nombre del AMPA *") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -476,7 +547,9 @@ fun CreateAmpaScreen(
                         provincePrefix = p.prefix,
                         provincia = p.name,
                         localidad = localidad,
+                        schoolType = schoolType,
                         schoolName = schoolName,
+                        ampaName = ampaName,
                         schoolCode8Chars = schoolCode,
                         role = role,
                         nombre = nombre,

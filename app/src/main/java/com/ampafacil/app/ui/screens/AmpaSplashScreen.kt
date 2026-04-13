@@ -33,7 +33,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ampafacil.app.R
@@ -61,6 +60,9 @@ fun AmpaSplashScreen(
 
     var appearance by remember { mutableStateOf(AmpaAppearance()) }
     var loading by remember { mutableStateOf(true) }
+    var ampaName by remember { mutableStateOf("") }
+    var schoolType by remember { mutableStateOf("") }
+    var schoolName by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         val uid = auth.currentUser?.uid
@@ -82,6 +84,9 @@ fun AmpaSplashScreen(
                 db.collection("ampas").document(ampaCode).get()
                     .addOnSuccessListener { ampaDoc ->
                         val baseSchoolName = ampaDoc.getString("schoolName") ?: "AMPA"
+                        ampaName = ampaDoc.getString("ampaName")?.trim().orEmpty()
+                        schoolType = ampaDoc.getString("schoolType")?.trim().orEmpty()
+                        schoolName = baseSchoolName.trim()
                         val loaded = ampaAppearanceFromMap(ampaDoc.get("themeConfig") as? Map<String, Any>)
                         appearance = loaded.copy(
                             schoolName = if (loaded.schoolName.isBlank()) baseSchoolName else loaded.schoolName
@@ -117,11 +122,10 @@ fun AmpaSplashScreen(
         FontStyleOption.SERIF -> FontFamily.Serif
     }
 
-    // Aquí preparamos el nombre del centro con fallback para no romper nada.
-    val schoolName = appearance.schoolName.ifBlank { "AMPA" }
-
-    // Dejamos este hueco preparado para cuando exista el nombre real del AMPA.
-    val ampaName: String? = null
+    // Preparamos los textos con fallback suave para que la splash no se rompa con datos antiguos.
+    val displayAmpaName = ampaName.trim()
+    val displaySchoolType = schoolType.trim()
+    val displaySchoolName = schoolName.ifBlank { appearance.schoolName }.trim()
 
     Column(
         modifier = Modifier
@@ -182,10 +186,9 @@ fun AmpaSplashScreen(
 
             Spacer(Modifier.height(18.dp))
 
-            // De momento enseñamos solo lo que existe; cuando tengamos el dato, aquí irá el nombre del AMPA.
-            if (!ampaName.isNullOrBlank()) {
+            if (displayAmpaName.isNotBlank()) {
                 Text(
-                    text = ampaName,
+                    text = "AMPA $displayAmpaName",
                     style = MaterialTheme.typography.titleMedium,
                     color = primary,
                     fontFamily = fontFamily,
@@ -194,13 +197,34 @@ fun AmpaSplashScreen(
                 Spacer(Modifier.height(6.dp))
             }
 
-            Text(
-                text = schoolName,
-                style = MaterialTheme.typography.headlineSmall,
-                color = primary,
-                fontFamily = fontFamily,
-                textAlign = TextAlign.Center
-            )
+            if (displaySchoolType.isNotBlank()) {
+                Text(
+                    text = displaySchoolType,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = primary,
+                    fontFamily = fontFamily,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+
+            if (displaySchoolName.isNotBlank()) {
+                Text(
+                    text = displaySchoolName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = primary,
+                    fontFamily = fontFamily,
+                    textAlign = TextAlign.Center
+                )
+            } else if (displayAmpaName.isBlank() && displaySchoolType.isBlank()) {
+                Text(
+                    text = "AMPA",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = primary,
+                    fontFamily = fontFamily,
+                    textAlign = TextAlign.Center
+                )
+            }
 
             if (loading) {
                 Spacer(Modifier.height(22.dp))
