@@ -373,7 +373,7 @@ fun AuthScreen(
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (isLoading) "Cargando..." else "Registrarme")
+            Text(if (isLoading) "Cargando..." else "Si desea registrarse por primera vez, introduzca su correo electrónico y su nueva contraseña; después, confirme el registro en su email")
         }
 
         Spacer(modifier = Modifier.height(10.dp))
