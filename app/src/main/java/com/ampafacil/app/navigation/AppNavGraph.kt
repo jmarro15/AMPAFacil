@@ -13,6 +13,9 @@ import com.ampafacil.app.ui.screens.CreateAmpaScreen
 import com.ampafacil.app.ui.screens.FamilyChildrenScreen
 import com.ampafacil.app.ui.screens.HomeScreen
 import com.ampafacil.app.ui.screens.StartRouterScreen
+import com.ampafacil.app.ui.screens.FamilyDirectoryScreen
+import com.ampafacil.app.ui.screens.PersonalDataScreen
+
 
 @Composable
 fun AppNavGraph() {
@@ -117,6 +120,18 @@ fun AppNavGraph() {
             )
         }
 
+        composable(Routes.PERSONAL_DATA) {
+            PersonalDataScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.FAMILY_DIRECTORY) {
+            FamilyDirectoryScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(Routes.HOME) {
             HomeScreen(
                 onLogout = {
@@ -125,8 +140,18 @@ fun AppNavGraph() {
                         launchSingleTop = true
                     }
                 },
-                onAddChild = { navController.navigate(Routes.FAMILY_CHILDREN) },
-                onOpenAppearance = { navController.navigate(Routes.APPEARANCE) }
+                onAddChild = {
+                    navController.navigate(Routes.FAMILY_CHILDREN)
+                },
+                onOpenPersonalData = {
+                    navController.navigate(Routes.PERSONAL_DATA)
+                },
+                onOpenFamilyDirectory = {
+                    navController.navigate(Routes.FAMILY_DIRECTORY)
+                },
+                onOpenAppearance = {
+                    navController.navigate(Routes.APPEARANCE)
+                }
             )
         }
     }

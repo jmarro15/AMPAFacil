@@ -44,6 +44,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun HomeScreen(
     onLogout: () -> Unit,
     onAddChild: () -> Unit,
+    onOpenPersonalData: () -> Unit,
+    onOpenFamilyDirectory: () -> Unit,
     onOpenAppearance: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
@@ -56,6 +58,8 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         val uid = auth.currentUser?.uid ?: return@LaunchedEffect
 
+        // Aquí cargamos primero los datos básicos del usuario para saludarlo
+        // y para saber a qué AMPA pertenece actualmente.
         db.collection("users").document(uid).get()
             .addOnSuccessListener { userDoc ->
                 userName = userDoc.getString("nombre") ?: ""
@@ -64,18 +68,22 @@ fun HomeScreen(
 
                 if (ampaCode.isNullOrBlank()) return@addOnSuccessListener
 
-                // Aquí leemos el rol del miembro para saber si enseñamos el botón de apariencia.
+                // Aquí leemos el rol guardado en members para decidir qué botones
+                // debe ver el usuario dentro del menú principal.
                 db.collection("ampas").document(ampaCode)
                     .collection("members").document(uid).get()
                     .addOnSuccessListener { memberDoc ->
                         role = (memberDoc.getString("role") ?: "").uppercase()
                     }
 
-                // Aquí leemos la apariencia guardada del AMPA para aplicarla a Home.
+                // Aquí cargamos la apariencia del AMPA para que Home mantenga
+                // colores, estilo de letra y demás personalización.
                 db.collection("ampas").document(ampaCode).get()
                     .addOnSuccessListener { ampaDoc ->
                         val schoolName = ampaDoc.getString("schoolName") ?: ""
-                        val loaded = ampaAppearanceFromMap(ampaDoc.get("themeConfig") as? Map<String, Any>)
+                        val loaded = ampaAppearanceFromMap(
+                            ampaDoc.get("themeConfig") as? Map<String, Any>
+                        )
                         appearance = loaded.copy(
                             schoolName = if (loaded.schoolName.isBlank()) schoolName else loaded.schoolName
                         )
@@ -83,13 +91,20 @@ fun HomeScreen(
             }
     }
 
-    val isDirector = role == Roles.PRESIDENT || role == Roles.SECRETARY || role == Roles.VICEPRESIDENT
+
+
+    val isDirector =
+        role == Roles.PRESIDENT ||
+                role == Roles.SECRETARY ||
+                role == Roles.VICEPRESIDENT
 
     val backgroundColor = parseHexColor(appearance.backgroundColor, Color(0xFFF7F9FC))
     val primaryColor = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
     val secondaryColor = parseHexColor(appearance.secondaryColor, Color(0xFF2E7D32))
+
     val borderThickness = borderThicknessFrom(appearance.borderThickness)
-    val borderWidth = (borderThickness.dp).dp
+    val borderWidth = borderThickness.dp.dp
+
     val fontStyle = fontStyleFrom(appearance.fontStyle)
 
     val fontFamily = when (fontStyle) {
@@ -134,7 +149,7 @@ fun HomeScreen(
                 fontFamily = fontFamily
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Bienvenido/a al menú de tu AMPA.",
@@ -142,7 +157,7 @@ fun HomeScreen(
                 fontFamily = fontFamily
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 modifier = Modifier
@@ -168,9 +183,29 @@ fun HomeScreen(
                         Text("Añadir hijo o hija", fontFamily = fontFamily)
                     }
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Button(
+                        onClick = onOpenPersonalData,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = buttonColors
+                    ) {
+                        Text("Mis datos personales", fontFamily = fontFamily)
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     if (isDirector) {
+                        Button(
+                            onClick = onOpenFamilyDirectory,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Buscar familias", fontFamily = fontFamily)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
                         Button(
                             onClick = onOpenAppearance,
                             modifier = Modifier.fillMaxWidth(),
@@ -179,12 +214,12 @@ fun HomeScreen(
                             Text("Apariencia del AMPA", fontFamily = fontFamily)
                         }
 
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
 
                     Button(
                         onClick = {
-                            // Aquí cerramos la sesión y volvemos al flujo de acceso.
+                            // Aquí cerramos sesión y volvemos al flujo inicial.
                             auth.signOut()
                             onLogout()
                         },
