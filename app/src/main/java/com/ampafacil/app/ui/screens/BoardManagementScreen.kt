@@ -1,3 +1,4 @@
+//BoardManagementScreen
 package com.ampafacil.app.ui.screens
 
 import android.widget.Toast
@@ -149,7 +150,7 @@ fun BoardManagementScreen(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(BoardRoles.label(role))
-                        Text("Estado: ${invite.status}")
+                        Text("Estado: ${BoardInviteStatus.label(invite.status)}")
                         if (invite.memberUid != null) {
                             val memberLabel = memberNames[role] ?: invite.memberUid
                             Text("Miembro asignado: $memberLabel")

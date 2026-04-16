@@ -144,7 +144,7 @@ fun AmpaSplashScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .size(170.dp)
+                    .size(190.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color.White)
                     .border(borderWidth, primary, RoundedCornerShape(20.dp)),
@@ -160,7 +160,7 @@ fun AmpaSplashScreen(
                         contentScale = ContentScale.Fit
                     )
                 } else {
-                    // Si aún no hay logo, mostramos un placeholder elegante y claro.
+                    // Si aún no hay logo, mostramos un placeholder   claro.
                     Column(
                         modifier = Modifier.padding(horizontal = 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -238,7 +238,7 @@ fun AmpaSplashScreen(
         Image(
             painter = painterResource(id = R.drawable.logo_ampafacil),
             contentDescription = "Logo de AMPAFácil",
-            modifier = Modifier.size(112.dp),
+            modifier = Modifier.size(150.dp),
             contentScale = ContentScale.Fit
         )
 

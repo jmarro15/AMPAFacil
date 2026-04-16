@@ -43,7 +43,7 @@ fun InitialBoardInvitesScreen(
     val uid = auth.currentUser?.uid.orEmpty()
 
     val remainingRoles = remember(creatorRole) { BoardRoles.remainingRoles(creatorRole) }
-    val emailsByRole = remember {
+    val emailsByRole = remember(remainingRoles) {
         mutableStateMapOf<String, String>().apply {
             remainingRoles.forEach { put(it, "") }
         }
@@ -87,9 +87,9 @@ fun InitialBoardInvitesScreen(
                 )
                 Text(
                     text = if (emailsByRole[role].isNullOrBlank()) {
-                        "Estado inicial: ${BoardInviteStatus.VACANT}"
+                        "Estado inicial: ${BoardInviteStatus.label(BoardInviteStatus.VACANT)}"
                     } else {
-                        "Estado inicial: ${BoardInviteStatus.PENDING}"
+                        "Estado inicial: ${BoardInviteStatus.label(BoardInviteStatus.PENDING)}"
                     }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
