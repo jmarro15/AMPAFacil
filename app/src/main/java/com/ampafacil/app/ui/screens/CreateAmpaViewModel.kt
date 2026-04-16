@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.ampafacil.app.data.BoardInviteStatus
 import com.ampafacil.app.data.Roles
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -21,6 +22,9 @@ class CreateAmpaViewModel : ViewModel() {
         private set
 
     var createdAmpaCode by mutableStateOf<String?>(null)
+        private set
+
+    var createdCreatorRole by mutableStateOf<String?>(null)
         private set
 
     var errorMessage by mutableStateOf<String?>(null)
@@ -53,6 +57,7 @@ class CreateAmpaViewModel : ViewModel() {
         isCreating = true
         errorMessage = null
         createdAmpaCode = null
+        createdCreatorRole = null
 
         /* Aquí normalizamos el rol para no depender de lo que venga de la UI.
            Así evitamos que se cuele un "PRESI" y dejamos todo listo para reglas futuras. */
@@ -126,6 +131,19 @@ class CreateAmpaViewModel : ViewModel() {
                     "ampaCode" to ampaCode,
                     "createdAt" to now
                 )
+                val creatorRoleInviteRef = ampaRef.collection("roleInvites").document(normalizedRole)
+                val creatorRoleInviteData = hashMapOf(
+                    "role" to normalizedRole,
+                    "email" to email,
+                    "status" to BoardInviteStatus.ACCEPTED,
+                    "sentCount" to 0,
+                    "createdAt" to now,
+                    "updatedAt" to now,
+                    "lastSentAt" to null,
+                    "createdByUid" to uid,
+                    "updatedByUid" to uid,
+                    "memberUid" to uid
+                )
 
                 /* Aquí hacemos un batch para que todo se escriba en bloque.
                    Si algo falla, no dejamos medias tintas en la base de datos. */
@@ -134,10 +152,12 @@ class CreateAmpaViewModel : ViewModel() {
                 batch.set(memberRef, memberData)
                 batch.set(userRef, userProfileData, SetOptions.merge())
                 batch.set(ampaBySchoolRef, ampaBySchoolData, SetOptions.merge())
+                batch.set(creatorRoleInviteRef, creatorRoleInviteData, SetOptions.merge())
 
                 batch.commit()
                     .addOnSuccessListener {
                         createdAmpaCode = ampaCode
+                        createdCreatorRole = normalizedRole
                         isCreating = false
                     }
                     .addOnFailureListener { e ->
