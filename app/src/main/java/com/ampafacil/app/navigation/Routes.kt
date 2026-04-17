@@ -10,9 +10,13 @@ object Routes {
     const val AMPA_SPLASH = "ampa_splash"
     const val APPEARANCE = "appearance"
     const val HOME = "home"
-
-    // Aquí añadimos las rutas nuevas del menú principal.
-    //He tardado mil años en encontrar este fallo tonto.
     const val PERSONAL_DATA = "personal_data"
     const val FAMILY_DIRECTORY = "family_directory"
+    const val BOARD_MANAGEMENT = "board_management"
+
+    const val INITIAL_BOARD_INVITES = "initial_board_invites/{ampaCode}/{creatorRole}"
+
+    fun initialBoardInvites(ampaCode: String, creatorRole: String): String {
+        return "initial_board_invites/$ampaCode/$creatorRole"
+    }
 }

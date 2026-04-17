@@ -65,7 +65,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 @Composable
 fun CreateAmpaScreen(
     onBack: () -> Unit,
-    onDone: () -> Unit,
+    onAmpaCreated: (ampaCode: String, creatorRole: String) -> Unit,
     vm: CreateAmpaViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -240,7 +240,8 @@ fun CreateAmpaScreen(
     }
 
     val createdCode = vm.createdAmpaCode
-    if (createdCode != null) {
+    val createdRole = vm.createdCreatorRole
+    if (createdCode != null && createdRole != null) {
         AlertDialog(
             onDismissRequest = {},
             title = { Text("AMPA creado ✅", color = primaryColor, fontFamily = fontFamily) },
@@ -271,7 +272,7 @@ fun CreateAmpaScreen(
 
                         clipboard.setText(AnnotatedString(createdCode))
                         Toast.makeText(context, "Código copiado ✅", Toast.LENGTH_SHORT).show()
-                        onDone()
+                        onAmpaCreated(createdCode, createdRole)
                     },
                     colors = buttonColors
                 ) {

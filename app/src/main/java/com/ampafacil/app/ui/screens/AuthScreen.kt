@@ -4,6 +4,7 @@ package com.ampafacil.app.ui.screens
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -20,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
@@ -31,16 +34,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.ampafacil.app.R
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun AuthScreen(
     onAuthSuccess: () -> Unit
 ) {
-    // Aquí guardamos lo que va escribiendo el usuario.
+    // Aquí guardamos lo que va escribiendo la persona usuaria.
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -50,7 +56,7 @@ fun AuthScreen(
     // Aquí evitamos pulsaciones repetidas mientras Firebase responde.
     var isLoading by remember { mutableStateOf(false) }
 
-    // Aquí ocultamos sugerencias cuando el usuario ya ha elegido una.
+    // Aquí ocultamos sugerencias cuando ya se ha elegido una.
     var hideSuggestions by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -61,7 +67,7 @@ fun AuthScreen(
 
         // Aquí comprobamos que no falten datos.
         if (cleanEmail.isBlank() || password.isBlank()) {
-            Toast.makeText(context, "Completa email y contraseña", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Completa email y                  NUEVA contraseña", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -200,7 +206,7 @@ fun AuthScreen(
     }
 
     fun resendVerification() {
-        // Aquí reintentamos el envío solo si hay un usuario activo y no está verificado.
+        // Aquí reintentamos el envío solo si hay usuario activo y todavía no está verificado.
         val user = auth.currentUser
 
         if (user != null && !user.isEmailVerified) {
@@ -241,7 +247,7 @@ fun AuthScreen(
 
             Toast.makeText(
                 context,
-                "Primero haz login y, si falta verificación, lo reenvío.",
+                "Primero entra con tu cuenta y, si aún no está verificada, podremos reenviar el correo.",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -280,12 +286,34 @@ fun AuthScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "AMPAFácil - Acceso",
-            style = MaterialTheme.typography.headlineSmall
+        // Aquí colocamos el logo principal para que la entrada tenga identidad visual.
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Image(
+            painter = painterResource(id = R.drawable.logo_ampafacil),
+            contentDescription = "Logo de AMPAFácil",
+            modifier = Modifier.size(210.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Acceso a AMPAFácil",
+            style = MaterialTheme.typography.headlineSmall,
+            color = Color.White
+
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Si es la primera vez, escribe tu email, crea una contraseña nueva y pulsa Registrarme. Después tendrás que verificar tu cuenta desde el correo electrónico.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         OutlinedTextField(
             value = email,
@@ -309,9 +337,8 @@ fun AuthScreen(
                 items(filteredDomains) { domain ->
                     SuggestionChip(
                         onClick = {
+                            // Aquí completamos el dominio para ahorrar tiempo al escribir.
                             email = "$localPart@$domain"
-
-                            // Aquí ocultamos sugerencias después de elegir una.
                             hideSuggestions = true
                         },
                         label = { Text(domain) }
@@ -321,7 +348,7 @@ fun AuthScreen(
                 item {
                     SuggestionChip(
                         onClick = {
-                            // Aquí dejamos que el usuario complete el dominio a mano.
+                            // Aquí dejamos que se complete el dominio a mano.
                             hideSuggestions = true
                         },
                         label = { Text("Seguir escribiendo") }
@@ -330,7 +357,7 @@ fun AuthScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = password,
@@ -366,15 +393,32 @@ fun AuthScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = "Crea una contraseña nueva para esta app.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(18.dp))
 
         Button(
             onClick = { register() },
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (isLoading) "Cargando..." else "Si desea registrarse por primera vez, introduzca su correo electrónico y su nueva contraseña; después, confirme el registro en su email")
+            Text(if (isLoading) "Cargando..." else "Registrarme")
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Si ya tienes la cuenta creada y verificada, pulsa Entrar.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -383,12 +427,12 @@ fun AuthScreen(
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (isLoading) "Cargando..." else "Entrar")
+            Text("Entrar")
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Button(
+        OutlinedButton(
             onClick = { resendVerification() },
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth()

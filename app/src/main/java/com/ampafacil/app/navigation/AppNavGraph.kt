@@ -2,20 +2,23 @@
 package com.ampafacil.app.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.ampafacil.app.ui.screens.AmpaCodeScreen
 import com.ampafacil.app.ui.screens.AmpaSplashScreen
 import com.ampafacil.app.ui.screens.AppearanceScreen
 import com.ampafacil.app.ui.screens.AuthScreen
+import com.ampafacil.app.ui.screens.BoardManagementScreen
 import com.ampafacil.app.ui.screens.CreateAmpaScreen
 import com.ampafacil.app.ui.screens.FamilyChildrenScreen
-import com.ampafacil.app.ui.screens.HomeScreen
-import com.ampafacil.app.ui.screens.StartRouterScreen
 import com.ampafacil.app.ui.screens.FamilyDirectoryScreen
+import com.ampafacil.app.ui.screens.HomeScreen
+import com.ampafacil.app.ui.screens.InitialBoardInvitesScreen
 import com.ampafacil.app.ui.screens.PersonalDataScreen
-
+import com.ampafacil.app.ui.screens.StartRouterScreen
 
 @Composable
 fun AppNavGraph() {
@@ -84,9 +87,32 @@ fun AppNavGraph() {
         composable(Routes.CREATE_AMPA) {
             CreateAmpaScreen(
                 onBack = { navController.popBackStack() },
-                onDone = {
-                    navController.navigate(Routes.START) {
+                onAmpaCreated = { ampaCode, creatorRole ->
+                    navController.navigate(Routes.initialBoardInvites(ampaCode, creatorRole)) {
                         popUpTo(Routes.CREATE_AMPA) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = Routes.INITIAL_BOARD_INVITES,
+            arguments = listOf(
+                navArgument("ampaCode") { type = NavType.StringType },
+                navArgument("creatorRole") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val ampaCode = backStackEntry.arguments?.getString("ampaCode").orEmpty()
+            val creatorRole = backStackEntry.arguments?.getString("creatorRole").orEmpty()
+
+            InitialBoardInvitesScreen(
+                ampaCode = ampaCode,
+                creatorRole = creatorRole,
+                onBack = { navController.popBackStack() },
+                onDone = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.INITIAL_BOARD_INVITES) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -132,6 +158,12 @@ fun AppNavGraph() {
             )
         }
 
+        composable(Routes.BOARD_MANAGEMENT) {
+            BoardManagementScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(Routes.HOME) {
             HomeScreen(
                 onLogout = {
@@ -151,6 +183,9 @@ fun AppNavGraph() {
                 },
                 onOpenAppearance = {
                     navController.navigate(Routes.APPEARANCE)
+                },
+                onOpenBoardManagement = {
+                    navController.navigate(Routes.BOARD_MANAGEMENT)
                 }
             )
         }

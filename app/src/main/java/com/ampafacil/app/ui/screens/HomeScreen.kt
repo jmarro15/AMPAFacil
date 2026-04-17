@@ -46,7 +46,8 @@ fun HomeScreen(
     onAddChild: () -> Unit,
     onOpenPersonalData: () -> Unit,
     onOpenFamilyDirectory: () -> Unit,
-    onOpenAppearance: () -> Unit
+    onOpenAppearance: () -> Unit,
+    onOpenBoardManagement: () -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
@@ -212,6 +213,16 @@ fun HomeScreen(
                             colors = buttonColors
                         ) {
                             Text("Apariencia del AMPA", fontFamily = fontFamily)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Button(
+                            onClick = onOpenBoardManagement,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Gestión de directiva", fontFamily = fontFamily)
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
