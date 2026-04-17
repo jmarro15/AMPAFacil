@@ -45,6 +45,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import android.content.Context
+import androidx.compose.material3.OutlinedTextFieldDefaults
 
 @Composable
 fun AmpaCodeScreen(
@@ -106,6 +107,16 @@ fun AmpaCodeScreen(
     val borderWidth = (borderThickness.dp).dp
     val fontStyle = fontStyleFrom(appearance.fontStyle)
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.DarkGray,
+        focusedLabelColor = Color.DarkGray,
+        unfocusedLabelColor = Color.Gray,
+        cursorColor = primaryColor,
+        focusedBorderColor = primaryColor,
+        unfocusedBorderColor = Color.Gray
+    )
+
     val fontFamily = when (fontStyle) {
         FontStyleOption.DEFAULT -> FontFamily.Default
         FontStyleOption.ROUNDED -> FontFamily.SansSerif
@@ -120,7 +131,7 @@ fun AmpaCodeScreen(
     fun validateAndJoin() {
         /* Aquí validamos código y datos mínimos del miembro antes de unirnos. */
         val clean = code.trim()
-
+    // Debo de colocar un texto advirtiendo de que el codigo debe ser el que le ha proporcionado el ampa
         if (clean.length != 6 || clean.any { !it.isDigit() }) {
             Toast.makeText(context, "El código tiene que tener 6 números.", Toast.LENGTH_LONG).show()
             return
@@ -202,6 +213,8 @@ fun AmpaCodeScreen(
                                 "telefono" to telefono.trim(),
                                 "updatedAt" to now
                             )
+
+
 
                             val batch = db.batch()
                             batch.set(userRef, userUpdate, SetOptions.merge())
@@ -319,18 +332,27 @@ fun AmpaCodeScreen(
                     .background(backgroundColor)
                     .padding(12.dp)
             ) {
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = "Código de 6 dígitos proporcionado por su AMPA",
+                    color = primaryColor,
+                    fontFamily = fontFamily
+                )
+
                 OutlinedTextField(
                     value = code,
                     onValueChange = { new -> code = new.filter { it.isDigit() }.take(6) },
                     label = { Text("Código AMPA (6 dígitos)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
+
                 )
 
                 Spacer(Modifier.height(12.dp))
 
                 Text(
-                    text = "Datos del miembro",
+                    text = "Datos del padre/madre o tutor/a",
                     color = primaryColor,
                     fontFamily = fontFamily
                 )
@@ -342,7 +364,8 @@ fun AmpaCodeScreen(
                     onValueChange = { nombre = it },
                     label = { Text("Nombre") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -352,7 +375,8 @@ fun AmpaCodeScreen(
                     onValueChange = { apellidos = it },
                     label = { Text("Apellidos") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -362,7 +386,8 @@ fun AmpaCodeScreen(
                     onValueChange = { telefono = it.filter { c -> c.isDigit() }.take(15) },
                     label = { Text("Teléfono (opcional)") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -408,20 +433,25 @@ fun AmpaCodeScreen(
                     )
                 }
 
-                Spacer(Modifier.height(10.dp))
 
-                OutlinedButton(
-                    onClick = { onCreateAmpa() },
-                    enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Crear un AMPA nuevo (solo directiva)",
-                        color = primaryColor,
-                        fontFamily = fontFamily
-                    )
-                }
             }
         }
+
+        Spacer(Modifier.height(10.dp))
+
+        OutlinedButton(
+            onClick = { onCreateAmpa() },
+            enabled = !isLoading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "CREAR una AMPA nueva                  (solo para la directiva)",
+                color = primaryColor,
+                fontFamily = fontFamily
+            )
     }
+
+    }
+
+
 }

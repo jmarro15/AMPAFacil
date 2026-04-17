@@ -1,10 +1,11 @@
+// File: app/src/main/java/com/ampafacil/app/data/BoardRoleInvite.kt
 package com.ampafacil.app.data
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 
-/* Modelo de Firestore para ampas/{ampaCode}/roleInvites/{role}.
-   Guardamos un documento persistente por cargo para que la invitación sea estable y editable. */
+/* Aquí representamos una invitación guardada para un cargo de directiva.
+   Cada rol tiene su propio documento dentro de roleInvites. */
 data class BoardRoleInvite(
     val role: String = "",
     val email: String = "",
@@ -18,6 +19,7 @@ data class BoardRoleInvite(
     val memberUid: String? = null
 )
 
+/* Aquí transformamos el documento de Firestore en un objeto Kotlin fácil de usar. */
 fun boardRoleInviteFromDoc(doc: DocumentSnapshot): BoardRoleInvite {
     return BoardRoleInvite(
         role = doc.getString("role") ?: doc.id,

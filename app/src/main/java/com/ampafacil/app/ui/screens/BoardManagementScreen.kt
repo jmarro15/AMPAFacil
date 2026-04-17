@@ -1,4 +1,4 @@
-//BoardManagementScreen
+// File: app/src/main/java/com/ampafacil/app/ui/screens/BoardManagementScreen.kt
 package com.ampafacil.app.ui.screens
 
 import android.widget.Toast
@@ -37,6 +37,25 @@ import com.ampafacil.app.data.BoardRoles
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
+// Aquí guardamos la información real de cada miembro de directiva.
+// Nos sirve para saber cuándo un cargo está ocupado de verdad.
+private data class BoardMemberInfo(
+    val uid: String,
+    val role: String,
+    val nombre: String,
+    val apellidos: String,
+    val email: String
+) {
+    // Aquí montamos un nombre legible para enseñar en pantalla.
+    fun fullName(): String {
+        val composed = listOf(nombre, apellidos)
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+
+        return if (composed.isBlank()) uid else composed
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BoardManagementScreen(
@@ -49,42 +68,78 @@ fun BoardManagementScreen(
     val uid = auth.currentUser?.uid.orEmpty()
 
     var ampaCode by remember { mutableStateOf("") }
-    var invites by remember { mutableStateOf<List<BoardRoleInvite>>(emptyList()) }
+    var invitesByRole by remember { mutableStateOf<Map<String, BoardRoleInvite>>(emptyMap()) }
+    var membersByRole by remember { mutableStateOf<Map<String, BoardMemberInfo>>(emptyMap()) }
     var isLoading by remember { mutableStateOf(true) }
+
+    // Aquí guardamos lo que se escribe en cada caja de email.
     val emailsInEdition = remember { mutableStateMapOf<String, String>() }
-    val memberNames = remember { mutableStateMapOf<String, String>() }
 
     fun refresh() {
         if (ampaCode.isBlank()) return
-        isLoading = true
-        repository.loadInvites(
-            ampaCode = ampaCode,
-            onSuccess = { list ->
-                invites = list
-                list.forEach { invite ->
-                    emailsInEdition[invite.role] = invite.email
-                }
 
-                // Si el cargo ya está ocupado (memberUid), intentamos mostrar nombre legible del miembro.
-                list.forEach { invite ->
-                    val memberUid = invite.memberUid ?: return@forEach
-                    db.collection("ampas").document(ampaCode)
-                        .collection("members").document(memberUid)
-                        .get()
-                        .addOnSuccessListener { memberDoc ->
-                            val nombre = memberDoc.getString("nombre").orEmpty()
-                            val apellidos = memberDoc.getString("apellidos").orEmpty()
-                            val fullName = listOf(nombre, apellidos).filter { it.isNotBlank() }.joinToString(" ")
-                            memberNames[invite.role] = if (fullName.isBlank()) memberUid else fullName
+        isLoading = true
+
+        // Primero leemos los miembros reales de directiva.
+        // Si un cargo está aquí, para nosotros ese cargo está ocupado.
+        db.collection("ampas").document(ampaCode)
+            .collection("members")
+            .whereIn("role", BoardRoles.all)
+            .get()
+            .addOnSuccessListener { membersSnapshot ->
+                val loadedMembers = membersSnapshot.documents
+                    .mapNotNull { doc ->
+                        val role = (doc.getString("role") ?: "").uppercase()
+
+                        if (!BoardRoles.all.contains(role)) return@mapNotNull null
+
+                        BoardMemberInfo(
+                            uid = doc.id,
+                            role = role,
+                            nombre = doc.getString("nombre").orEmpty(),
+                            apellidos = doc.getString("apellidos").orEmpty(),
+                            email = doc.getString("email").orEmpty()
+                        )
+                    }
+                    .associateBy { it.role }
+
+                // Después leemos las invitaciones guardadas.
+                // Esto nos sirve para cargos pendientes, vacantes o revocados.
+                repository.loadInvites(
+                    ampaCode = ampaCode,
+                    onSuccess = { invites ->
+                        val inviteMap = invites.associateBy { it.role }
+
+                        membersByRole = loadedMembers
+                        invitesByRole = inviteMap
+
+                        BoardRoles.all.forEach { role ->
+                            val member = loadedMembers[role]
+                            val invite = inviteMap[role]
+
+                            emailsInEdition[role] = when {
+                                member != null -> member.email
+                                invite != null -> invite.email
+                                else -> ""
+                            }
                         }
-                }
-                isLoading = false
-            },
-            onError = { msg ->
-                isLoading = false
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+
+                        isLoading = false
+                    },
+                    onError = { msg ->
+                        isLoading = false
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    }
+                )
             }
-        )
+            .addOnFailureListener {
+                isLoading = false
+                Toast.makeText(
+                    context,
+                    "No se pudieron cargar los miembros de directiva.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
     }
 
     LaunchedEffect(Unit) {
@@ -93,16 +148,18 @@ fun BoardManagementScreen(
             return@LaunchedEffect
         }
 
-        // Leemos el AMPA activo desde users para reutilizar el contexto ya existente del proyecto.
+        // Aquí leemos el AMPA activo del usuario para saber sobre qué AMPA trabajar.
         db.collection("users").document(uid).get()
             .addOnSuccessListener { userDoc ->
                 ampaCode = userDoc.getString("activeAmpaCode")?.trim()
                     ?: userDoc.getString("ampaCode")?.trim().orEmpty()
+
                 if (ampaCode.isBlank()) {
                     isLoading = false
                     Toast.makeText(context, "No hay AMPA activa para gestionar.", Toast.LENGTH_LONG).show()
                     return@addOnSuccessListener
                 }
+
                 refresh()
             }
             .addOnFailureListener {
@@ -141,28 +198,50 @@ fun BoardManagementScreen(
                 return@Column
             }
 
-            // TODO Fase 2: además de memberUid, resolver por email para detectar invitaciones pendientes tras login.
             BoardRoles.all.forEach { role ->
-                val invite = invites.firstOrNull { it.role == role }
-                    ?: BoardRoleInvite(role = role, status = BoardInviteStatus.VACANT)
-                val editableEmail = emailsInEdition[role].orEmpty()
+                val member = membersByRole[role]
+                val invite = invitesByRole[role] ?: BoardRoleInvite(role = role)
+                val isOccupied = member != null
+
+                // Aquí decidimos el estado interno real del bloque.
+                val inferredInternalStatus = when {
+                    isOccupied -> BoardInviteStatus.ACCEPTED
+                    invite.status == BoardInviteStatus.REVOKED -> BoardInviteStatus.REVOKED
+                    emailsInEdition[role].orEmpty().isNotBlank() -> BoardInviteStatus.PENDING
+                    else -> BoardInviteStatus.VACANT
+                }
+
+                val visibleStatus = BoardInviteStatus.label(
+                    status = inferredInternalStatus,
+                    isOccupied = isOccupied
+                )
 
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(BoardRoles.label(role))
-                        Text("Estado: ${BoardInviteStatus.label(invite.status)}")
-                        if (invite.memberUid != null) {
-                            val memberLabel = memberNames[role] ?: invite.memberUid
-                            Text("Miembro asignado: $memberLabel")
+                        Text("Estado: $visibleStatus")
+
+                        if (member != null) {
+                            Text("Miembro: ${member.fullName()}")
+
+                            if (member.email.isNotBlank()) {
+                                Text("Email miembro: ${member.email}")
+                            }
+
+                            Text(
+                                "Este cargo está ocupado por un miembro real. " +
+                                        "Las invitaciones solo se usan cuando el cargo queda libre."
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
                         OutlinedTextField(
-                            value = editableEmail,
+                            value = emailsInEdition[role].orEmpty(),
                             onValueChange = { emailsInEdition[role] = it.trim() },
                             label = { Text("Email asociado") },
                             singleLine = true,
+                            enabled = !isOccupied,
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -173,15 +252,18 @@ fun BoardManagementScreen(
                                 repository.saveInvite(
                                     ampaCode = ampaCode,
                                     role = role,
-                                    emailInput = editableEmail,
+                                    emailInput = emailsInEdition[role].orEmpty(),
                                     actorUid = uid,
                                     onSuccess = {
                                         Toast.makeText(context, "Invitación actualizada.", Toast.LENGTH_SHORT).show()
                                         refresh()
                                     },
-                                    onError = { msg -> Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
+                                    onError = { msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    }
                                 )
                             },
+                            enabled = !isOccupied,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Guardar o actualizar invitación")
@@ -189,7 +271,10 @@ fun BoardManagementScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Button(
                                 onClick = {
                                     repository.markVacant(
@@ -201,9 +286,12 @@ fun BoardManagementScreen(
                                             emailsInEdition[role] = ""
                                             refresh()
                                         },
-                                        onError = { msg -> Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
+                                        onError = { msg ->
+                                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                        }
                                     )
                                 },
+                                enabled = !isOccupied,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Marcar vacante")
@@ -219,9 +307,12 @@ fun BoardManagementScreen(
                                             Toast.makeText(context, "Invitación revocada.", Toast.LENGTH_SHORT).show()
                                             refresh()
                                         },
-                                        onError = { msg -> Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
+                                        onError = { msg ->
+                                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                        }
                                     )
                                 },
+                                enabled = !isOccupied,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Revocar")
@@ -237,18 +328,19 @@ fun BoardManagementScreen(
                                     role = role,
                                     actorUid = uid,
                                     onSuccess = {
-                                        // V1: simulamos el reenvío actualizando contador y fecha de último envío.
                                         Toast.makeText(
                                             context,
-                                            "Reenvío registrado. El envío real de email se integrará en una fase posterior.",
+                                            "Reenvío registrado. El envío real de email llegará en una fase posterior.",
                                             Toast.LENGTH_LONG
                                         ).show()
                                         refresh()
                                     },
-                                    onError = { msg -> Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
+                                    onError = { msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    }
                                 )
                             },
-                            enabled = editableEmail.isNotBlank(),
+                            enabled = !isOccupied && emailsInEdition[role].orEmpty().isNotBlank(),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Reenviar invitación")

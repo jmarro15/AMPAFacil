@@ -1,4 +1,4 @@
-//Boardinvitesrepository
+// File: app/src/main/java/com/ampafacil/app/data/BoardInvitesRepository.kt
 package com.ampafacil.app.data
 
 import com.google.firebase.Timestamp
@@ -6,8 +6,8 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 
-/* Repositorio pequeño para encapsular operaciones de roleInvites.
-   Mantiene la V1 simple: persistencia clara y acciones básicas de gestión. */
+/* Aquí agrupamos las operaciones de roleInvites para que la pantalla quede más limpia.
+   Seguimos en una V3 sencilla: guardamos, actualizamos y registramos acciones básicas. */
 class BoardInvitesRepository(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
@@ -25,10 +25,13 @@ class BoardInvitesRepository(
                     .associateBy { it.role }
                     .toMutableMap()
 
-                // Si falta algún rol, devolvemos uno "virtual" vacante para que la UI sea consistente.
+                // Si falta algún rol, devolvemos uno virtual para que la UI siempre tenga los tres cargos.
                 BoardRoles.all.forEach { role ->
                     if (!byRole.containsKey(role)) {
-                        byRole[role] = BoardRoleInvite(role = role, status = BoardInviteStatus.VACANT)
+                        byRole[role] = BoardRoleInvite(
+                            role = role,
+                            status = BoardInviteStatus.VACANT
+                        )
                     }
                 }
 
@@ -56,9 +59,16 @@ class BoardInvitesRepository(
                 val now = Timestamp.now()
                 val exists = existing.exists()
                 val oldSentCount = (existing.getLong("sentCount") ?: 0L).toInt()
-                val createdByUid = existing.getString("createdByUid")?.takeIf { it.isNotBlank() } ?: actorUid
+                val createdByUid = existing.getString("createdByUid")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: actorUid
 
-                val status = if (email.isBlank()) BoardInviteStatus.VACANT else BoardInviteStatus.PENDING
+                val status = if (email.isBlank()) {
+                    BoardInviteStatus.VACANT
+                } else {
+                    BoardInviteStatus.PENDING
+                }
+
                 val data = hashMapOf<String, Any?>(
                     "role" to role,
                     "email" to email,
@@ -66,8 +76,11 @@ class BoardInvitesRepository(
                     "sentCount" to oldSentCount,
                     "updatedAt" to now,
                     "updatedByUid" to actorUid,
-                    // Si volvemos a PENDING tras editar, limpiamos memberUid para evitar inconsistencias.
-                    "memberUid" to if (status == BoardInviteStatus.PENDING) null else existing.getString("memberUid")
+                    "memberUid" to if (status == BoardInviteStatus.PENDING) {
+                        null
+                    } else {
+                        existing.getString("memberUid")
+                    }
                 )
 
                 if (!exists) {
@@ -78,9 +91,13 @@ class BoardInvitesRepository(
 
                 ref.set(data, SetOptions.merge())
                     .addOnSuccessListener { onSuccess() }
-                    .addOnFailureListener { e -> onError(e.message ?: "No se pudo guardar la invitación.") }
+                    .addOnFailureListener { e ->
+                        onError(e.message ?: "No se pudo guardar la invitación.")
+                    }
             }
-            .addOnFailureListener { e -> onError(e.message ?: "No se pudo leer la invitación actual.") }
+            .addOnFailureListener { e ->
+                onError(e.message ?: "No se pudo leer la invitación actual.")
+            }
     }
 
     fun saveInitialInvites(
@@ -95,7 +112,12 @@ class BoardInvitesRepository(
 
         invitesByRole.forEach { (role, rawEmail) ->
             val email = rawEmail.trim().lowercase()
-            val status = if (email.isBlank()) BoardInviteStatus.VACANT else BoardInviteStatus.PENDING
+            val status = if (email.isBlank()) {
+                BoardInviteStatus.VACANT
+            } else {
+                BoardInviteStatus.PENDING
+            }
+
             val ref = db.collection("ampas").document(ampaCode)
                 .collection("roleInvites").document(role)
 
@@ -107,17 +129,19 @@ class BoardInvitesRepository(
                 "updatedByUid" to actorUid,
                 "createdAt" to now,
                 "createdByUid" to actorUid,
-                // En V1 dejamos contador a 0: aún no hay envío real de email integrado.
                 "sentCount" to 0,
                 "lastSentAt" to null,
                 "memberUid" to null
             )
+
             batch.set(ref, data, SetOptions.merge())
         }
 
         batch.commit()
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { e -> onError(e.message ?: "No se pudieron guardar las invitaciones iniciales.") }
+            .addOnFailureListener { e ->
+                onError(e.message ?: "No se pudieron guardar las invitaciones iniciales.")
+            }
     }
 
     fun markVacant(
@@ -166,17 +190,22 @@ class BoardInvitesRepository(
         val ref = db.collection("ampas").document(ampaCode)
             .collection("roleInvites").document(role)
 
-        ref.update(
+        // Aquí usamos set con merge para que no falle si todavía no existía el documento.
+        ref.set(
             mapOf(
+                "role" to role,
                 "status" to BoardInviteStatus.PENDING,
                 "updatedAt" to Timestamp.now(),
                 "updatedByUid" to actorUid,
                 "lastSentAt" to Timestamp.now(),
                 "sentCount" to FieldValue.increment(1)
-            )
+            ),
+            SetOptions.merge()
         )
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { e -> onError(e.message ?: "No se pudo reenviar la invitación.") }
+            .addOnFailureListener { e ->
+                onError(e.message ?: "No se pudo reenviar la invitación.")
+            }
     }
 
     private fun updateStatus(
@@ -198,10 +227,15 @@ class BoardInvitesRepository(
             "updatedByUid" to actorUid,
             "memberUid" to null
         )
-        if (email != null) data["email"] = email
+
+        if (email != null) {
+            data["email"] = email
+        }
 
         ref.set(data, SetOptions.merge())
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { e -> onError(e.message ?: "No se pudo actualizar el estado del cargo.") }
+            .addOnFailureListener { e ->
+                onError(e.message ?: "No se pudo actualizar el estado del cargo.")
+            }
     }
 }

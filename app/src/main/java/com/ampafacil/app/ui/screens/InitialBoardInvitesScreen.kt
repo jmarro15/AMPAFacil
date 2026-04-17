@@ -1,3 +1,4 @@
+// File: app/src/main/java/com/ampafacil/app/ui/screens/InitialBoardInvitesScreen.kt
 package com.ampafacil.app.ui.screens
 
 import android.widget.Toast
@@ -42,8 +43,11 @@ fun InitialBoardInvitesScreen(
     val auth = FirebaseAuth.getInstance()
     val uid = auth.currentUser?.uid.orEmpty()
 
+    // Aquí calculamos los dos cargos que faltan según el rol del creador.
     val remainingRoles = remember(creatorRole) { BoardRoles.remainingRoles(creatorRole) }
-    val emailsByRole = remember(remainingRoles) {
+
+    // Aquí guardamos temporalmente los correos que se escriben antes de persistirlos.
+    val emailsByRole = remember(creatorRole) {
         mutableStateMapOf<String, String>().apply {
             remainingRoles.forEach { put(it, "") }
         }
@@ -71,13 +75,16 @@ fun InitialBoardInvitesScreen(
             verticalArrangement = Arrangement.Top
         ) {
             Text(
-                "AMPA creada correctamente. Ahora puedes invitar por email a los dos cargos de directiva que faltan. Si prefieres, puedes hacerlo más tarde desde Gestión de directiva."
+                "AMPA creada correctamente. Ahora puedes dejar preparados los correos " +
+                        "de los dos cargos de directiva que faltan. Si prefieres, podrás " +
+                        "gestionarlos y reenviarlos más adelante desde Gestión de directiva."
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             remainingRoles.forEach { role ->
                 Text(text = BoardRoles.label(role))
+
                 OutlinedTextField(
                     value = emailsByRole[role].orEmpty(),
                     onValueChange = { emailsByRole[role] = it.trim() },
@@ -85,34 +92,40 @@ fun InitialBoardInvitesScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text(
-                    text = if (emailsByRole[role].isNullOrBlank()) {
-                        "Estado inicial: ${BoardInviteStatus.label(BoardInviteStatus.VACANT)}"
-                    } else {
-                        "Estado inicial: ${BoardInviteStatus.label(BoardInviteStatus.PENDING)}"
-                    }
-                )
+
+                val statusText = if (emailsByRole[role].isNullOrBlank()) {
+                    BoardInviteStatus.label(BoardInviteStatus.VACANT)
+                } else {
+                    BoardInviteStatus.label(BoardInviteStatus.PENDING)
+                }
+
+                Text("Estado inicial: $statusText")
+
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
             Button(
                 onClick = {
                     if (uid.isBlank()) {
-                        Toast.makeText(context, "Sesión inválida. Vuelve a iniciar sesión.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "Sesión inválida. Vuelve a iniciar sesión.",
+                            Toast.LENGTH_LONG
+                        ).show()
                         return@Button
                     }
 
                     isSaving = true
+
                     repository.saveInitialInvites(
                         ampaCode = ampaCode,
                         invitesByRole = remainingRoles.associateWith { emailsByRole[it].orEmpty() },
                         actorUid = uid,
                         onSuccess = {
                             isSaving = false
-                            // V1: aún no enviamos correo real. Dejamos persistencia completa y contador preparado.
                             Toast.makeText(
                                 context,
-                                "Invitaciones guardadas. Podrás reenviarlas desde Gestión de directiva.",
+                                "Correos guardados. Desde Gestión de directiva podrás editar, revocar o reenviar cuando lo necesites.",
                                 Toast.LENGTH_LONG
                             ).show()
                             onDone()

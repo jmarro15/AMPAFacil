@@ -60,6 +60,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.OutlinedTextFieldDefaults
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -71,6 +72,8 @@ fun CreateAmpaScreen(
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val screenScroll = rememberScrollState()
+
+
 
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
@@ -206,6 +209,20 @@ fun CreateAmpaScreen(
     val borderThickness = borderThicknessFrom(appearance.borderThickness)
     val borderWidth = (borderThickness.dp).dp
     val fontStyle = fontStyleFrom(appearance.fontStyle)
+
+    // Aquí dejamos definidos los colores de las cajas para que el texto se vea bien
+// tanto cuando escribimos como cuando el campo está vacío.
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.DarkGray,
+        focusedLabelColor = Color.DarkGray,
+        unfocusedLabelColor = Color.Gray,
+        focusedPlaceholderColor = Color.Gray,
+        unfocusedPlaceholderColor = Color.Gray,
+        cursorColor = primaryColor,
+        focusedBorderColor = primaryColor,
+        unfocusedBorderColor = Color.Gray
+    )
 
     val fontFamily = when (fontStyle) {
         FontStyleOption.DEFAULT -> FontFamily.Default
@@ -367,7 +384,7 @@ fun CreateAmpaScreen(
                         value = selectedProvince?.prefix ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Prefijo provincia (auto)") },
+                        label = { Text("Prefijo provincia (automatico)") },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -378,7 +395,9 @@ fun CreateAmpaScreen(
                         onValueChange = { localidad = it },
                         label = { Text("Localidad *") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
+
                     )
 
                     Spacer(Modifier.height(10.dp))
