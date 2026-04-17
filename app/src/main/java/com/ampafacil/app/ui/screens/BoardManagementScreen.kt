@@ -1,6 +1,9 @@
 // File: app/src/main/java/com/ampafacil/app/ui/screens/BoardManagementScreen.kt
 package com.ampafacil.app.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -68,6 +71,7 @@ fun BoardManagementScreen(
     val uid = auth.currentUser?.uid.orEmpty()
 
     var ampaCode by remember { mutableStateOf("") }
+    var ampaName by remember { mutableStateOf("") }
     var invitesByRole by remember { mutableStateOf<Map<String, BoardRoleInvite>>(emptyMap()) }
     var membersByRole by remember { mutableStateOf<Map<String, BoardMemberInfo>>(emptyMap()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -160,7 +164,17 @@ fun BoardManagementScreen(
                     return@addOnSuccessListener
                 }
 
-                refresh()
+                db.collection("ampas").document(ampaCode).get()
+                    .addOnSuccessListener { ampaDoc ->
+                        // Aquí intentamos leer el nombre real del AMPA para personalizar mejor el email.
+                        ampaName = ampaDoc.getString("ampaName")?.trim().orEmpty()
+                        refresh()
+                    }
+                    .addOnFailureListener {
+                        // Si falla esta lectura, seguimos con el flujo normal usando el nombre por defecto.
+                        ampaName = ""
+                        refresh()
+                    }
             }
             .addOnFailureListener {
                 isLoading = false
@@ -323,24 +337,13 @@ fun BoardManagementScreen(
 
                         Button(
                             onClick = {
-                                repository.resendInvite(
-                                    ampaCode = ampaCode,
-                                    role = role,
-                                    actorUid = uid,
-                                    onSuccess = {
-                                        Toast.makeText(
-                                            context,
-                                            "Reenvío registrado. El envío real de email llegará en una fase posterior.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        refresh()
-                                    },
-                                    onError = { msg ->
-                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                                    }
+                                openInvitationEmail(
+                                    context = context,
+                                    targetEmail = emailsInEdition[role].orEmpty(),
+                                    ampaName = ampaName
                                 )
                             },
-                            enabled = !isOccupied && emailsInEdition[role].orEmpty().isNotBlank(),
+                            enabled = !isOccupied,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Reenviar invitación")
@@ -351,5 +354,60 @@ fun BoardManagementScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }
+    }
+}
+
+private fun openInvitationEmail(
+    context: Context,
+    targetEmail: String,
+    ampaName: String?
+) {
+    // Aquí comprobamos si realmente tenemos un email al que mandar la invitación.
+    if (targetEmail.isBlank()) {
+        Toast.makeText(
+            context,
+            "No hay email disponible para reenviar la invitación",
+            Toast.LENGTH_SHORT
+        ).show()
+        return
+    }
+
+    // Aquí preparamos un nombre de AMPA seguro por si todavía no existe uno real guardado.
+    val safeAmpaName = ampaName?.takeIf { it.isNotBlank() } ?: "nuestro AMPA"
+
+    // Aquí construimos el asunto que verá la persona invitada en su correo.
+    val subject = "Invitación para unirte al AMPA $safeAmpaName"
+
+    // Aquí dejamos escrito el mensaje base de invitación para que la directiva no tenga que redactarlo a mano.
+    val body = """
+        Hola,
+
+        La directiva del AMPA $safeAmpaName te ha enviado esta invitación para unirte a través de AMPAFácil.
+
+        Para acceder, primero debes registrarte en la aplicación con este mismo correo electrónico.
+        Después podrás iniciar sesión y completar el proceso de acceso.
+
+        Si tienes cualquier duda, contacta con la directiva del AMPA.
+
+        Un saludo.
+    """.trimIndent()
+
+    // Aquí creamos el Intent para abrir una app de correo con el destinatario, asunto y mensaje ya rellenados.
+    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+        data = Uri.parse("mailto:$targetEmail")
+        putExtra(Intent.EXTRA_EMAIL, arrayOf(targetEmail))
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+        putExtra(Intent.EXTRA_TEXT, body)
+    }
+
+    // Aquí comprobamos si el móvil tiene alguna app de correo capaz de manejar esta acción.
+    if (emailIntent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(emailIntent)
+    } else {
+        Toast.makeText(
+            context,
+            "No se encontró ninguna app de correo",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
