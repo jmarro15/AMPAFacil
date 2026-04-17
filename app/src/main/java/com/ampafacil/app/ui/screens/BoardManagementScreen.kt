@@ -167,7 +167,9 @@ fun BoardManagementScreen(
                 db.collection("ampas").document(ampaCode).get()
                     .addOnSuccessListener { ampaDoc ->
                         // Aquí intentamos leer el nombre real del AMPA para personalizar mejor el email.
-                        ampaName = ampaDoc.getString("ampaName")?.trim().orEmpty()
+                        ampaName = ampaDoc.getString("ampaName")?.trim()
+                            ?.takeIf { it.isNotBlank() }
+                            ?: ampaDoc.getString("schoolName")?.trim().orEmpty()
                         refresh()
                     }
                     .addOnFailureListener {
@@ -340,7 +342,8 @@ fun BoardManagementScreen(
                                 openInvitationEmail(
                                     context = context,
                                     targetEmail = emailsInEdition[role].orEmpty(),
-                                    ampaName = ampaName
+                                    ampaName = ampaName,
+                                    roleLabel = BoardRoles.label(role)
                                 )
                             },
                             enabled = !isOccupied,
@@ -360,7 +363,8 @@ fun BoardManagementScreen(
 private fun openInvitationEmail(
     context: Context,
     targetEmail: String,
-    ampaName: String?
+    ampaName: String?,
+    roleLabel: String
 ) {
     // Aquí comprobamos si realmente tenemos un email al que mandar la invitación.
     if (targetEmail.isBlank()) {
@@ -376,13 +380,13 @@ private fun openInvitationEmail(
     val safeAmpaName = ampaName?.takeIf { it.isNotBlank() } ?: "nuestro AMPA"
 
     // Aquí construimos el asunto que verá la persona invitada en su correo.
-    val subject = "Invitación para unirte al AMPA $safeAmpaName"
+    val subject = "Invitación para ocupar el cargo en $roleLabel en el AMPA $safeAmpaName"
 
     // Aquí dejamos escrito el mensaje base de invitación para que la directiva no tenga que redactarlo a mano.
     val body = """
         Hola,
 
-        La directiva del AMPA $safeAmpaName te ha enviado esta invitación para unirte a través de AMPAFácil.
+        La directiva del AMPA $safeAmpaName te ha enviado esta invitación para unirte a través de AMPAFácil en la $roleLabel .
 
         Para acceder, primero debes registrarte en la aplicación con este mismo correo electrónico.
         Después podrás iniciar sesión y completar el proceso de acceso.
@@ -392,18 +396,24 @@ private fun openInvitationEmail(
         Un saludo.
     """.trimIndent()
 
-    // Aquí creamos el Intent para abrir una app de correo con el destinatario, asunto y mensaje ya rellenados.
+    // Aquí metemos destinatario, asunto y cuerpo dentro del propio mailto,
+    // porque así suele funcionar mejor en Gmail y en otros clientes de correo.
+    val mailUri = Uri.Builder()
+        .scheme("mailto")
+        .opaquePart(targetEmail)
+        .appendQueryParameter("subject", subject)
+        .appendQueryParameter("body", body)
+        .build()
+
     val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-        data = Uri.parse("mailto:$targetEmail")
-        putExtra(Intent.EXTRA_EMAIL, arrayOf(targetEmail))
-        putExtra(Intent.EXTRA_SUBJECT, subject)
-        putExtra(Intent.EXTRA_TEXT, body)
+        data = mailUri
     }
 
-    // Aquí comprobamos si el móvil tiene alguna app de correo capaz de manejar esta acción.
-    if (emailIntent.resolveActivity(context.packageManager) != null) {
+    // Aquí intentamos abrir directamente el correo.
+    // Si no existe ninguna app compatible, capturamos el fallo y avisamos con un Toast.
+    try {
         context.startActivity(emailIntent)
-    } else {
+    } catch (e: Exception) {
         Toast.makeText(
             context,
             "No se encontró ninguna app de correo",
