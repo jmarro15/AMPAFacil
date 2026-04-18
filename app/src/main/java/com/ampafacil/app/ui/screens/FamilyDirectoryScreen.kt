@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,65 +43,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
-private data class ChildRecord(
-    val name: String,
-    val surname: String,
-    val course: String,
-    val groupClass: String
-)
-
-private data class FamilyRecord(
-    val tutorName: String,
-    val tutorSurname: String,
-    val phone: String,
-    val children: List<ChildRecord>
-)
-
-// Datos locales de ejemplo para esta primera versión sin Firestore.
-private val sampleFamilies = listOf(
-    FamilyRecord(
-        tutorName = "Laura",
-        tutorSurname = "Martín López",
-        phone = "600123456",
-        children = listOf(
-            ChildRecord("Hugo", "Martín Pérez", "3º Primaria", "A"),
-            ChildRecord("Inés", "Martín Pérez", "1º Primaria", "B")
-        )
-    ),
-    FamilyRecord(
-        tutorName = "David",
-        tutorSurname = "Sánchez Ruiz",
-        phone = "611987654",
-        children = listOf(
-            ChildRecord("Clara", "Sánchez Gil", "5º Primaria", "C")
-        )
-    ),
-    FamilyRecord(
-        tutorName = "Marta",
-        tutorSurname = "García Moreno",
-        phone = "622555321",
-        children = listOf(
-            ChildRecord("Álvaro", "García Torres", "2º Primaria", "A"),
-            ChildRecord("Nora", "García Torres", "Infantil 5", "B")
-        )
-    ),
-    FamilyRecord(
-        tutorName = "Carlos",
-        tutorSurname = "Pérez Navarro",
-        phone = "633444222",
-        children = listOf(
-            ChildRecord("Lucía", "Pérez Ortega", "4º Primaria", "B")
-        )
-    )
-)
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FamilyDirectoryScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    vm: FamilyDirectoryViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val uiState = vm.uiState
 
     var surnameFilter by remember { mutableStateOf("") }
     var nameFilter by remember { mutableStateOf("") }
@@ -108,31 +60,32 @@ fun FamilyDirectoryScreen(
     var courseFilter by remember { mutableStateOf("") }
     var classFilter by remember { mutableStateOf("") }
 
-    // La búsqueda se recalcula al escribir para que la pantalla responda al momento.
+    // Mantenemos los filtros en memoria para conservar el comportamiento actual de la pantalla.
     val filteredFamilies = remember(
+        uiState.families,
         surnameFilter,
         nameFilter,
         phoneFilter,
         courseFilter,
         classFilter
     ) {
-        sampleFamilies.filter { family ->
+        uiState.families.filter { family ->
             val surnameMatches = surnameFilter.isBlank() ||
                     family.tutorSurname.contains(surnameFilter, ignoreCase = true) ||
-                    family.children.any { child -> child.surname.contains(surnameFilter, ignoreCase = true) }
+                    family.children.any { child -> child.apellidos.contains(surnameFilter, ignoreCase = true) }
 
             val nameMatches = nameFilter.isBlank() ||
                     family.tutorName.contains(nameFilter, ignoreCase = true) ||
-                    family.children.any { child -> child.name.contains(nameFilter, ignoreCase = true) }
+                    family.children.any { child -> child.nombre.contains(nameFilter, ignoreCase = true) }
 
             val phoneMatches = phoneFilter.isBlank() ||
                     family.phone.contains(phoneFilter, ignoreCase = true)
 
             val courseMatches = courseFilter.isBlank() ||
-                    family.children.any { child -> child.course.contains(courseFilter, ignoreCase = true) }
+                    family.children.any { child -> child.curso.contains(courseFilter, ignoreCase = true) }
 
             val classMatches = classFilter.isBlank() ||
-                    family.children.any { child -> child.groupClass.contains(classFilter, ignoreCase = true) }
+                    family.children.any { child -> child.clase.contains(classFilter, ignoreCase = true) }
 
             surnameMatches && nameMatches && phoneMatches && courseMatches && classMatches
         }
@@ -219,76 +172,130 @@ fun FamilyDirectoryScreen(
                 }
             }
 
-            if (filteredFamilies.isEmpty()) {
-                item {
-                    Text(
-                        text = "No se han encontrado familias con esos filtros.",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            } else {
-                items(filteredFamilies) { family ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
+            when {
+                uiState.isLoading -> {
+                    item {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp)
+                                .padding(vertical = 18.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            CircularProgressIndicator()
+                            Text("Cargando familias…")
+                        }
+                    }
+                }
+
+                uiState.errorMessage != null -> {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                text = "Tutor: ${family.tutorName} ${family.tutorSurname}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                text = uiState.errorMessage,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error
                             )
+                            Button(onClick = { vm.loadFamilies() }) {
+                                Text("Reintentar")
+                            }
+                        }
+                    }
+                }
 
-                            Spacer(Modifier.height(4.dp))
+                filteredFamilies.isEmpty() -> {
+                    item {
+                        val noFilters = surnameFilter.isBlank() &&
+                                nameFilter.isBlank() &&
+                                phoneFilter.isBlank() &&
+                                courseFilter.isBlank() &&
+                                classFilter.isBlank()
 
-                            Row(
+                        val message = if (noFilters) {
+                            "No hay familias con hijos para mostrar en este AMPA."
+                        } else {
+                            "No se han encontrado familias con esos filtros."
+                        }
+
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+
+                else -> {
+                    items(filteredFamilies) { family ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(
                                 modifier = Modifier
-                                    // La fila completa es pulsable para que se entienda mejor la acción.
-                                    .clickable {
-                                        val phone = family.phone.trim()
-                                        if (phone.isNotBlank()) {
+                                    .fillMaxWidth()
+                                    .padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "Tutor: ${family.tutorName} ${family.tutorSurname}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+
+                                if (family.email.isNotBlank()) {
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = "Email: ${family.email}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+
+                                Spacer(Modifier.height(4.dp))
+
+                                val phone = family.phone.trim()
+                                Row(
+                                    modifier = Modifier
+                                        // Si no hay teléfono, evitamos marcar la fila como acción disponible.
+                                        .clickable(enabled = phone.isNotBlank()) {
                                             // Usamos ACTION_DIAL para evitar permisos de llamada directa.
                                             val dialIntent = Intent(
                                                 Intent.ACTION_DIAL,
                                                 Uri.parse("tel:$phone")
                                             )
                                             context.startActivity(dialIntent)
-                                        }
-                                    },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Teléfono: ${family.phone.ifBlank { "No disponible" }}",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    if (phone.isNotBlank()) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Icon(
+                                            imageVector = Icons.Filled.Phone,
+                                            contentDescription = "Llamar",
+                                            tint = Color(0xFF2E7D32),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+
                                 Text(
-                                    text = "Teléfono: ${family.phone}",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    text = "Hijos asociados (${family.childrenCount}):",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Filled.Phone,
-                                    contentDescription = "Llamar",
-                                    tint = Color(0xFF2E7D32),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
 
-                            Spacer(Modifier.height(8.dp))
-
-                            Text(
-                                text = "Hijos asociados:",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-
-                            family.children.forEach { child ->
-                                Text(
-                                    text = "• ${child.name} ${child.surname} · ${child.course} ${child.groupClass}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                family.children.forEach { child ->
+                                    Text(
+                                        text = "• ${child.nombre} ${child.apellidos} · ${child.ciclo} · ${child.curso} ${child.clase}",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
                             }
                         }
                     }
