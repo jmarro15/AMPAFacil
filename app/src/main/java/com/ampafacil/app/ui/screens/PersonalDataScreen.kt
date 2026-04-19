@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.ampafacil.app.data.AmpaMember
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -68,7 +67,7 @@ fun PersonalDataScreen(
     var childrenCount by remember { mutableStateOf(0) }
     var childrenSummary by remember { mutableStateOf("") }
 
-    // Aquí se carga lo que ya exista para que la familia solo tenga que retocar y guardar.
+    // Aquí cargamos primero el usuario, luego el member y después los hijos reales.
     LaunchedEffect(uid) {
         if (uid.isNullOrBlank()) {
             isLoading = false
@@ -86,40 +85,87 @@ fun PersonalDataScreen(
                     return@addOnSuccessListener
                 }
 
-                db.collection("ampas").document(ampaCode)
-                    .collection("members").document(uid).get()
+                val memberRef = db.collection("ampas").document(ampaCode)
+                    .collection("members").document(uid)
+
+                memberRef.get()
                     .addOnSuccessListener { memberDoc ->
-                        val member = if (memberDoc.exists()) {
-                            memberDoc.toObject(AmpaMember::class.java) ?: AmpaMember()
-                        } else {
-                            AmpaMember()
-                        }
+                        // Aquí leemos manualmente para adaptarnos a los distintos nombres de campo
+                        // que ya existen en Firestore sin depender de toObject().
+                        memberKey = memberDoc.getString("memberKey")?.ifBlank { uid } ?: uid
+                        role = memberDoc.getString("role").orEmpty()
+                        notes = memberDoc.getString("notes").orEmpty()
+                        createdAt = memberDoc.getTimestamp("createdAt")
 
-                        memberKey = if (member.memberKey.isNotBlank()) member.memberKey else uid
-                        role = member.role
-                        notes = member.notes
-                        createdAt = member.createdAt
+                        firstName = memberDoc.getString("firstName")
+                            ?: memberDoc.getString("nombre")
+                                    ?: ""
 
-                        firstName = member.firstName
-                        lastName1 = member.lastName1
-                        lastName2 = member.lastName2
-                        phone = member.phone
-                        email = member.email
-                        secondaryEmail = member.secondaryEmail
-                        dni = member.dni
+                        lastName1 = memberDoc.getString("lastName1")
+                            ?: memberDoc.getString("apellidos")
+                                    ?: ""
 
-                        childrenCount = member.childrenCount
-                        childrenSummary = member.childrenSummary
-                        isLoading = false
+                        lastName2 = memberDoc.getString("lastName2").orEmpty()
+
+                        phone = memberDoc.getString("phone")
+                            ?: memberDoc.getString("telefono")
+                                    ?: ""
+
+                        email = memberDoc.getString("email").orEmpty()
+                        secondaryEmail = memberDoc.getString("secondaryEmail").orEmpty()
+                        dni = memberDoc.getString("dni").orEmpty()
+
+                        // Aquí traemos los hijos reales desde la subcolección para que el resumen
+                        // siempre coincida con lo que de verdad hay guardado.
+                        memberRef.collection("children").get()
+                            .addOnSuccessListener { childrenSnapshot ->
+                                val children = childrenSnapshot.documents.map { childDoc ->
+                                    val nombre = childDoc.getString("nombre").orEmpty().trim()
+                                    val apellidos = childDoc.getString("apellidos").orEmpty().trim()
+                                    val curso = childDoc.getString("curso").orEmpty().trim()
+                                    val clase = childDoc.getString("clase").orEmpty().trim()
+
+                                    if (nombre.isBlank() && apellidos.isBlank()) {
+                                        ""
+                                    } else {
+                                        "$nombre $apellidos · $curso $clase".trim()
+                                    }
+                                }.filter { it.isNotBlank() }
+
+                                childrenCount = children.size
+                                childrenSummary = if (children.isEmpty()) {
+                                    ""
+                                } else {
+                                    children.joinToString("\n")
+                                }
+
+                                isLoading = false
+                            }
+                            .addOnFailureListener {
+                                isLoading = false
+                                Toast.makeText(
+                                    context,
+                                    "No he podido cargar el resumen real de hijos.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                     }
                     .addOnFailureListener {
                         isLoading = false
-                        Toast.makeText(context, "No he podido cargar tus datos personales.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "No he podido cargar tus datos personales.",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
             }
             .addOnFailureListener {
                 isLoading = false
-                Toast.makeText(context, "No he podido leer el perfil de usuario.", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    "No he podido leer el perfil de usuario.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
     }
 
@@ -139,7 +185,7 @@ fun PersonalDataScreen(
         val now = Timestamp.now()
         val safeMemberKey = memberKey.ifBlank { uid }
 
-        // Aquí se usa merge para no romper otros datos internos del miembro que no se tocan en este formulario.
+        // Aquí guardamos en merge para no romper otros datos internos del miembro.
         val payload = hashMapOf<String, Any>(
             "uid" to uid,
             "ampaCode" to ampaCode,
@@ -158,7 +204,13 @@ fun PersonalDataScreen(
             "updatedAt" to now
         )
 
-        // Solo se escribe createdAt cuando todavía no existe, para respetar el histórico real.
+        // También mantenemos nombres equivalentes para convivir con datos previos del proyecto.
+        payload["nombre"] = firstName.trim()
+        payload["apellidos"] = listOf(lastName1.trim(), lastName2.trim())
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+        payload["telefono"] = phone.trim()
+
         if (createdAt == null) {
             payload["createdAt"] = now
         }
@@ -172,7 +224,11 @@ fun PersonalDataScreen(
                 if (createdAt == null) {
                     createdAt = now
                 }
-                Toast.makeText(context, "Datos personales guardados correctamente.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Datos personales guardados correctamente.",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             .addOnFailureListener { e ->
                 isSaving = false
@@ -242,7 +298,7 @@ fun PersonalDataScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Aquí puedo actualizar mis datos para que la comunicación del AMPA sea más fácil.",
+                        text = "Aquí podemos actualizar los datos para que la comunicación del AMPA sea más fácil.",
                         style = MaterialTheme.typography.bodyMedium
                     )
 
@@ -306,7 +362,7 @@ fun PersonalDataScreen(
                     OutlinedTextField(
                         value = childrenCount.toString(),
                         onValueChange = {},
-                        enabled = false,
+                        readOnly = true,
                         label = { Text("Número de hijos") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
@@ -315,8 +371,8 @@ fun PersonalDataScreen(
                     OutlinedTextField(
                         value = childrenSummary,
                         onValueChange = {},
-                        enabled = false,
-                        label = { Text("Resumen de hijos") },
+                        readOnly = true,
+                        label = { Text("Resumen familiar") },
                         modifier = Modifier.fillMaxWidth()
                     )
 

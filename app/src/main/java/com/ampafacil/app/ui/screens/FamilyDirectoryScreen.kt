@@ -3,6 +3,7 @@ package com.ampafacil.app.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ampafacil.app.data.FamilyDirectoryDemoSeeder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +62,8 @@ fun FamilyDirectoryScreen(
     var courseFilter by remember { mutableStateOf("") }
     var classFilter by remember { mutableStateOf("") }
 
-    // Mantenemos los filtros en memoria para conservar el comportamiento actual de la pantalla.
+    // Aquí filtramos manteniendo la tarjeta por familia,
+    // pero obligando a que curso y clase coincidan en el mismo hijo.
     val filteredFamilies = remember(
         uiState.families,
         surnameFilter,
@@ -70,24 +73,54 @@ fun FamilyDirectoryScreen(
         classFilter
     ) {
         uiState.families.filter { family ->
-            val surnameMatches = surnameFilter.isBlank() ||
-                    family.tutorSurname.contains(surnameFilter, ignoreCase = true) ||
-                    family.children.any { child -> child.apellidos.contains(surnameFilter, ignoreCase = true) }
+            val tutorSurnameMatches = surnameFilter.isBlank() ||
+                    family.tutorSurname.contains(surnameFilter, ignoreCase = true)
 
-            val nameMatches = nameFilter.isBlank() ||
-                    family.tutorName.contains(nameFilter, ignoreCase = true) ||
-                    family.children.any { child -> child.nombre.contains(nameFilter, ignoreCase = true) }
+            val tutorNameMatches = nameFilter.isBlank() ||
+                    family.tutorName.contains(nameFilter, ignoreCase = true)
 
             val phoneMatches = phoneFilter.isBlank() ||
                     family.phone.contains(phoneFilter, ignoreCase = true)
 
-            val courseMatches = courseFilter.isBlank() ||
-                    family.children.any { child -> child.curso.contains(courseFilter, ignoreCase = true) }
+            // Aquí comprobamos si hay filtros dirigidos al alumnado.
+            val childFiltersActive =
+                surnameFilter.isNotBlank() ||
+                        nameFilter.isNotBlank() ||
+                        courseFilter.isNotBlank() ||
+                        classFilter.isNotBlank()
 
-            val classMatches = classFilter.isBlank() ||
-                    family.children.any { child -> child.clase.contains(classFilter, ignoreCase = true) }
+            // Aquí pedimos que el mismo hijo cumpla a la vez
+            // los filtros de nombre/apellido/curso/clase que estén informados.
+            val matchingChildren = family.children.filter { child ->
+                val childSurnameMatches = surnameFilter.isBlank() ||
+                        child.apellidos.contains(surnameFilter, ignoreCase = true)
 
-            surnameMatches && nameMatches && phoneMatches && courseMatches && classMatches
+                val childNameMatches = nameFilter.isBlank() ||
+                        child.nombre.contains(nameFilter, ignoreCase = true)
+
+                val childCourseMatches = courseFilter.isBlank() ||
+                        child.curso.contains(courseFilter, ignoreCase = true)
+
+                val childClassMatches = classFilter.isBlank() ||
+                        child.clase.contains(classFilter, ignoreCase = true)
+
+                childSurnameMatches &&
+                        childNameMatches &&
+                        childCourseMatches &&
+                        childClassMatches
+            }
+
+            // Aquí decidimos cuándo mostrar la familia:
+            // - si el tutor coincide y no hay filtros de hijos, mostramos la familia
+            // - si hay filtros de hijos, exigimos que haya al menos un hijo coincidente
+            val familyMatchesByTutor = tutorSurnameMatches && tutorNameMatches && phoneMatches
+            val familyMatchesByChild = matchingChildren.isNotEmpty() && phoneMatches
+
+            if (childFiltersActive) {
+                familyMatchesByChild
+            } else {
+                familyMatchesByTutor
+            }
         }
     }
 
@@ -114,7 +147,7 @@ fun FamilyDirectoryScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                // Zona de filtros sencilla para buscar por tutor o por alumnado.
+                // Aquí colocamos los filtros principales del buscador.
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = surnameFilter,
@@ -148,6 +181,7 @@ fun FamilyDirectoryScreen(
                             label = { Text("Curso") },
                             singleLine = true
                         )
+
                         OutlinedTextField(
                             value = classFilter,
                             onValueChange = { classFilter = it },
@@ -159,7 +193,7 @@ fun FamilyDirectoryScreen(
 
                     Button(
                         onClick = {
-                            // Con este botón se vuelve al estado inicial de forma rápida.
+                            // Aquí devolvemos el buscador a su estado inicial.
                             surnameFilter = ""
                             nameFilter = ""
                             phoneFilter = ""
@@ -168,6 +202,36 @@ fun FamilyDirectoryScreen(
                         }
                     ) {
                         Text("Limpiar filtros")
+                    }
+
+                    Button(
+                        onClick = {
+                            // Aquí cargamos 20 familias demo en el AMPA activo para probar el buscador.
+                            FamilyDirectoryDemoSeeder.seed20DemoFamiliesInActiveAmpa(
+                                onResult = { result ->
+                                    when (result) {
+                                        is FamilyDirectoryDemoSeeder.SeedResult.Success -> {
+                                            Toast.makeText(
+                                                context,
+                                                result.message,
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            vm.loadFamilies()
+                                        }
+
+                                        is FamilyDirectoryDemoSeeder.SeedResult.Error -> {
+                                            Toast.makeText(
+                                                context,
+                                                result.message,
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    ) {
+                        Text("Cargar familias de ejemplo")
                     }
                 }
             }
@@ -196,6 +260,7 @@ fun FamilyDirectoryScreen(
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.error
                             )
+
                             Button(onClick = { vm.loadFamilies() }) {
                                 Text("Reintentar")
                             }
@@ -254,11 +319,10 @@ fun FamilyDirectoryScreen(
                                 Spacer(Modifier.height(4.dp))
 
                                 val phone = family.phone.trim()
+
                                 Row(
                                     modifier = Modifier
-                                        // Si no hay teléfono, evitamos marcar la fila como acción disponible.
                                         .clickable(enabled = phone.isNotBlank()) {
-                                            // Usamos ACTION_DIAL para evitar permisos de llamada directa.
                                             val dialIntent = Intent(
                                                 Intent.ACTION_DIAL,
                                                 Uri.parse("tel:$phone")
@@ -271,6 +335,7 @@ fun FamilyDirectoryScreen(
                                         text = "Teléfono: ${family.phone.ifBlank { "No disponible" }}",
                                         style = MaterialTheme.typography.bodyMedium
                                     )
+
                                     if (phone.isNotBlank()) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Icon(
@@ -291,9 +356,28 @@ fun FamilyDirectoryScreen(
                                 )
 
                                 family.children.forEach { child ->
+
+                                    // Aquí comprobamos si este hijo concreto cumple los filtros activos.
+                                    val isMatch =
+                                        (surnameFilter.isBlank() || child.apellidos.contains(surnameFilter, true)) &&
+                                                (nameFilter.isBlank() || child.nombre.contains(nameFilter, true)) &&
+                                                (courseFilter.isBlank() || child.curso.contains(courseFilter, true)) &&
+                                                (classFilter.isBlank() || child.clase.contains(classFilter, true))
+
                                     Text(
                                         text = "• ${child.nombre} ${child.apellidos} · ${child.ciclo} · ${child.curso} ${child.clase}",
-                                        style = MaterialTheme.typography.bodyMedium
+
+                                        // Si coincide, lo ponemos en negrita
+                                        style = if (isMatch)
+                                            MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                        else
+                                            MaterialTheme.typography.bodyMedium,
+
+                                        // Y además le damos un color más visible
+                                        color = if (isMatch)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
