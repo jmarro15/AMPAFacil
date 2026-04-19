@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Aquí dejamos el bloque listo para la V1 de comunicados internos.
+    // Reutilizamos helpers existentes del proyecto si ya están definidos:
+    // isMember(ampaCode), isAdmin(ampaCode) o isAdminRole(role).
+    match /ampas/{ampaCode}/announcements/{announcementId} {
+      allow read: if request.auth != null && isMember(ampaCode);
+
+      // Aquí solo dejamos publicar a los roles de directiva pedidos.
+      allow create: if request.auth != null
+        && isMember(ampaCode)
+        && (
+          isAdmin(ampaCode)
+          || isAdminRole(get(/databases/$(database)/documents/ampas/$(ampaCode)/members/$(request.auth.uid)).data.role)
+        );
+
+      // Aquí no habilitamos edición ni borrado en esta V1.
+      allow update, delete: if false;
+    }
+  }
+}

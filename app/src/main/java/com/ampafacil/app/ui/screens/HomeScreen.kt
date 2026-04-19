@@ -47,12 +47,15 @@ fun HomeScreen(
     onOpenPersonalData: () -> Unit,
     onOpenFamilyDirectory: () -> Unit,
     onOpenAppearance: () -> Unit,
-    onOpenBoardManagement: () -> Unit
+    onOpenBoardManagement: () -> Unit,
+    onOpenAnnouncements: (String) -> Unit,
+    onOpenCreateAnnouncement: (String, String) -> Unit
 ) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
 
     var role by remember { mutableStateOf("") }
+    var ampaCode by remember { mutableStateOf("") }
     var userName by remember { mutableStateOf("") }
     var appearance by remember { mutableStateOf(AmpaAppearance()) }
 
@@ -64,14 +67,16 @@ fun HomeScreen(
         db.collection("users").document(uid).get()
             .addOnSuccessListener { userDoc ->
                 userName = userDoc.getString("nombre") ?: ""
-                val ampaCode = userDoc.getString("activeAmpaCode")?.trim()
+                val resolvedAmpaCode = userDoc.getString("activeAmpaCode")?.trim()
                     ?: userDoc.getString("ampaCode")?.trim()
 
-                if (ampaCode.isNullOrBlank()) return@addOnSuccessListener
+                if (resolvedAmpaCode.isNullOrBlank()) return@addOnSuccessListener
+
+                ampaCode = resolvedAmpaCode
 
                 // Aquí leemos el rol guardado en members para decidir qué botones
                 // debe ver el usuario dentro del menú principal.
-                db.collection("ampas").document(ampaCode)
+                db.collection("ampas").document(resolvedAmpaCode)
                     .collection("members").document(uid).get()
                     .addOnSuccessListener { memberDoc ->
                         role = (memberDoc.getString("role") ?: "").uppercase()
@@ -79,7 +84,7 @@ fun HomeScreen(
 
                 // Aquí cargamos la apariencia del AMPA para que Home mantenga
                 // colores, estilo de letra y demás personalización.
-                db.collection("ampas").document(ampaCode).get()
+                db.collection("ampas").document(resolvedAmpaCode).get()
                     .addOnSuccessListener { ampaDoc ->
                         val schoolName = ampaDoc.getString("schoolName") ?: ""
                         val loaded = ampaAppearanceFromMap(
@@ -196,6 +201,18 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
+                    if (ampaCode.isNotBlank()) {
+                        Button(
+                            onClick = { onOpenAnnouncements(ampaCode) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Comunicados", fontFamily = fontFamily)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
                     if (isDirector) {
                         Button(
                             onClick = onOpenFamilyDirectory,
@@ -206,6 +223,18 @@ fun HomeScreen(
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
+
+                        if (ampaCode.isNotBlank()) {
+                            Button(
+                                onClick = { onOpenCreateAnnouncement(ampaCode, role) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = buttonColors
+                            ) {
+                                Text("Crear comunicado", fontFamily = fontFamily)
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
 
                         Button(
                             onClick = onOpenAppearance,

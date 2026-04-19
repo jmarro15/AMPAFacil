@@ -9,10 +9,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ampafacil.app.ui.screens.AmpaCodeScreen
 import com.ampafacil.app.ui.screens.AmpaSplashScreen
+import com.ampafacil.app.ui.screens.AnnouncementsScreen
 import com.ampafacil.app.ui.screens.AppearanceScreen
 import com.ampafacil.app.ui.screens.AuthScreen
 import com.ampafacil.app.ui.screens.BoardManagementScreen
 import com.ampafacil.app.ui.screens.CreateAmpaScreen
+import com.ampafacil.app.ui.screens.CreateAnnouncementScreen
 import com.ampafacil.app.ui.screens.FamilyChildrenScreen
 import com.ampafacil.app.ui.screens.FamilyDirectoryScreen
 import com.ampafacil.app.ui.screens.HomeScreen
@@ -164,6 +166,43 @@ fun AppNavGraph() {
             )
         }
 
+        composable(
+            route = Routes.CREATE_ANNOUNCEMENT_ROUTE,
+            arguments = listOf(
+                navArgument("ampaCode") { type = NavType.StringType },
+                navArgument("currentUserRole") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val ampaCode = backStackEntry.arguments?.getString("ampaCode").orEmpty()
+            val currentUserRole = backStackEntry.arguments?.getString("currentUserRole").orEmpty()
+
+            CreateAnnouncementScreen(
+                ampaCode = ampaCode,
+                currentUserRole = currentUserRole,
+                onBack = { navController.popBackStack() },
+                onPublished = {
+                    navController.navigate(Routes.announcements(ampaCode)) {
+                        popUpTo(Routes.CREATE_ANNOUNCEMENT_ROUTE) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = Routes.ANNOUNCEMENTS_ROUTE,
+            arguments = listOf(
+                navArgument("ampaCode") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val ampaCode = backStackEntry.arguments?.getString("ampaCode").orEmpty()
+
+            AnnouncementsScreen(
+                ampaCode = ampaCode,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(Routes.HOME) {
             HomeScreen(
                 onLogout = {
@@ -186,6 +225,12 @@ fun AppNavGraph() {
                 },
                 onOpenBoardManagement = {
                     navController.navigate(Routes.BOARD_MANAGEMENT)
+                },
+                onOpenAnnouncements = { ampaCode ->
+                    navController.navigate(Routes.announcements(ampaCode))
+                },
+                onOpenCreateAnnouncement = { ampaCode, role ->
+                    navController.navigate(Routes.createAnnouncement(ampaCode, role))
                 }
             )
         }
