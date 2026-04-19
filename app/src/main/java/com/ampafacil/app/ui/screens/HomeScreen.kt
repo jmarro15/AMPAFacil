@@ -38,6 +38,8 @@ import com.ampafacil.app.data.fontStyleFrom
 import com.ampafacil.app.data.parseHexColor
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,11 +146,15 @@ fun HomeScreen(
             )
         }
     ) { padding ->
+
+        val scrollState = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .background(backgroundColor)
+                .verticalScroll(scrollState)
                 .padding(16.dp)
         ) {
             Text(
@@ -235,7 +241,7 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = buttonColors
                     ) {
-                        Text("Añadir hijos/as", fontFamily = fontFamily)
+                        Text("Añadir tus hijos/as", fontFamily = fontFamily)
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
