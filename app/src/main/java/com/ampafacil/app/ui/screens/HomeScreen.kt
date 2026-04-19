@@ -97,8 +97,6 @@ fun HomeScreen(
             }
     }
 
-
-
     val isDirector =
         role == Roles.PRESIDENT ||
                 role == Roles.SECRETARY ||
@@ -122,6 +120,11 @@ fun HomeScreen(
     val buttonColors = ButtonDefaults.buttonColors(
         containerColor = primaryColor,
         contentColor = Color.White
+    )
+
+    val disabledButtonColors = ButtonDefaults.buttonColors(
+        disabledContainerColor = Color(0xFF424242),
+        disabledContentColor = Color.White
     )
 
     Scaffold(
@@ -181,26 +184,6 @@ fun HomeScreen(
                         .background(backgroundColor)
                         .padding(12.dp)
                 ) {
-                    Button(
-                        onClick = onAddChild,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = buttonColors
-                    ) {
-                        Text("Añadir hijo o hija", fontFamily = fontFamily)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Button(
-                        onClick = onOpenPersonalData,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = buttonColors
-                    ) {
-                        Text("Mis datos personales", fontFamily = fontFamily)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
                     if (ampaCode.isNotBlank()) {
                         Button(
                             onClick = { onOpenAnnouncements(ampaCode) },
@@ -208,6 +191,18 @@ fun HomeScreen(
                             colors = buttonColors
                         ) {
                             Text("Comunicados", fontFamily = fontFamily)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    if (isDirector && ampaCode.isNotBlank()) {
+                        Button(
+                            onClick = { onOpenCreateAnnouncement(ampaCode, role) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = buttonColors
+                        ) {
+                            Text("Crear comunicado", fontFamily = fontFamily)
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -223,19 +218,29 @@ fun HomeScreen(
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
+                    }
 
-                        if (ampaCode.isNotBlank()) {
-                            Button(
-                                onClick = { onOpenCreateAnnouncement(ampaCode, role) },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = buttonColors
-                            ) {
-                                Text("Crear comunicado", fontFamily = fontFamily)
-                            }
+                    Button(
+                        onClick = onOpenPersonalData,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = buttonColors
+                    ) {
+                        Text("Mis datos personales", fontFamily = fontFamily)
+                    }
 
-                            Spacer(modifier = Modifier.height(10.dp))
-                        }
+                    Spacer(modifier = Modifier.height(10.dp))
 
+                    Button(
+                        onClick = onAddChild,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = buttonColors
+                    ) {
+                        Text("Añadir hijos/as", fontFamily = fontFamily)
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    if (isDirector) {
                         Button(
                             onClick = onOpenAppearance,
                             modifier = Modifier.fillMaxWidth(),
@@ -268,8 +273,84 @@ fun HomeScreen(
                     ) {
                         Text("Cerrar sesión", fontFamily = fontFamily)
                     }
+
+                    Spacer(modifier = Modifier.height(22.dp))
+
+                    Text(
+                        text = "Futuras ampliaciones",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = primaryColor,
+                        fontFamily = fontFamily
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (isDirector) {
+                        DisabledFutureButton(
+                            text = "Colaboradores del AMPA",
+                            fontFamily = fontFamily,
+                            colors = disabledButtonColors
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        DisabledFutureButton(
+                            text = "Comunidad de AMPAs",
+                            fontFamily = fontFamily,
+                            colors = disabledButtonColors
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        DisabledFutureButton(
+                            text = "Citas / calendario",
+                            fontFamily = fontFamily,
+                            colors = disabledButtonColors
+                        )
+                    } else {
+                        DisabledFutureButton(
+                            text = "Colabora con el AMPA",
+                            fontFamily = fontFamily,
+                            colors = disabledButtonColors
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        DisabledFutureButton(
+                            text = "Comunidad de AMPAs",
+                            fontFamily = fontFamily,
+                            colors = disabledButtonColors
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        DisabledFutureButton(
+                            text = "Citas / calendario",
+                            fontFamily = fontFamily,
+                            colors = disabledButtonColors
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DisabledFutureButton(
+    text: String,
+    fontFamily: FontFamily,
+    colors: androidx.compose.material3.ButtonColors
+) {
+    Button(
+        onClick = {
+            // De momento no hacemos nada porque esta opción queda preparada
+            // para una fase futura de AMPAFácil.
+        },
+        enabled = false,
+        modifier = Modifier.fillMaxWidth(),
+        colors = colors
+    ) {
+        Text(text, fontFamily = fontFamily)
     }
 }
