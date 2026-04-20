@@ -1,6 +1,7 @@
 // File: app/src/main/java/com/ampafacil/app/ui/screens/AmpaCodeScreen.kt
 package com.ampafacil.app.ui.screens
 
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +20,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,8 +46,11 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
-import android.content.Context
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.BorderStroke
+
+import androidx.compose.ui.text.font.FontWeight
+
+
 
 @Composable
 fun AmpaCodeScreen(
@@ -68,7 +73,6 @@ fun AmpaCodeScreen(
 
     val uid = auth.currentUser?.uid
 
-
     /*
      * Aquí cargamos datos del perfil para no pedirlos otra vez.
      * Si además el usuario ya tiene activeAmpaCode/ampaCode, también cargamos la apariencia de ese AMPA.
@@ -90,7 +94,8 @@ fun AmpaCodeScreen(
                         db.collection("ampas").document(activeCode).get()
                             .addOnSuccessListener { ampaDoc ->
                                 val schoolName = ampaDoc.getString("schoolName") ?: ""
-                                val loaded = ampaAppearanceFromMap(ampaDoc.get("themeConfig") as? Map<String, Any>)
+                                val loaded =
+                                    ampaAppearanceFromMap(ampaDoc.get("themeConfig") as? Map<String, Any>)
                                 appearance = loaded.copy(
                                     schoolName = if (loaded.schoolName.isBlank()) schoolName else loaded.schoolName
                                 )
@@ -107,11 +112,15 @@ fun AmpaCodeScreen(
     val borderWidth = (borderThickness.dp).dp
     val fontStyle = fontStyleFrom(appearance.fontStyle)
 
+    // Aquí usamos el mismo gris oscuro en todos los estados del texto,
+    // para que se vea bien mientras escribimos y también al salir del campo.
     val textFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = Color.Black,
-        unfocusedTextColor = Color.DarkGray,
-        focusedLabelColor = Color.DarkGray,
-        unfocusedLabelColor = Color.Gray,
+        focusedTextColor = Color(0xFF424242),
+        unfocusedTextColor = Color(0xFF424242),
+        focusedLabelColor = Color(0xFF616161),
+        unfocusedLabelColor = Color(0xFF9E9E9E),
+        focusedPlaceholderColor = Color(0xFF9E9E9E),
+        unfocusedPlaceholderColor = Color(0xFFBDBDBD),
         cursorColor = primaryColor,
         focusedBorderColor = primaryColor,
         unfocusedBorderColor = Color.Gray
@@ -131,15 +140,21 @@ fun AmpaCodeScreen(
     fun validateAndJoin() {
         /* Aquí validamos código y datos mínimos del miembro antes de unirnos. */
         val clean = code.trim()
-    // Debo de colocar un texto advirtiendo de que el codigo debe ser el que le ha proporcionado el ampa
+
+        // Debemos colocar un texto advirtiendo de que el código debe ser el que le ha proporcionado el AMPA.
         if (clean.length != 6 || clean.any { !it.isDigit() }) {
-            Toast.makeText(context, "El código tiene que tener 6 números.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "El código tiene que tener 6 números.", Toast.LENGTH_LONG)
+                .show()
             return
         }
 
         val user = auth.currentUser
         if (user == null) {
-            Toast.makeText(context, "No hay sesión iniciada. Hay que entrar antes.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                "No hay sesión iniciada. Hay que entrar antes.",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
@@ -214,8 +229,6 @@ fun AmpaCodeScreen(
                                 "updatedAt" to now
                             )
 
-
-
                             val batch = db.batch()
                             batch.set(userRef, userUpdate, SetOptions.merge())
                             batch.set(memberRef, memberPatch, SetOptions.merge())
@@ -224,11 +237,18 @@ fun AmpaCodeScreen(
                                 .addOnSuccessListener {
                                     // Aquí guardamos en local el último AMPA válido para poder reutilizarlo
                                     // en Splash y en Auth sin depender siempre del login.
-                                    val prefs = context.getSharedPreferences("ampafacil_auth", Context.MODE_PRIVATE)
+                                    val prefs = context.getSharedPreferences(
+                                        "ampafacil_auth",
+                                        Context.MODE_PRIVATE
+                                    )
                                     prefs.edit().putString("last_ampa_code", clean).apply()
 
                                     isLoading = false
-                                    Toast.makeText(context, "Datos actualizados ✅", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Datos actualizados ✅",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                     onCodeAccepted()
                                 }
                                 .addOnFailureListener { e ->
@@ -263,7 +283,10 @@ fun AmpaCodeScreen(
                             .addOnSuccessListener {
                                 // Aquí guardamos en local el último AMPA válido para que la app pueda
                                 // recuperar logo y apariencia también cuando ya no hay sesión activa.
-                                val prefs = context.getSharedPreferences("ampafacil_auth", Context.MODE_PRIVATE)
+                                val prefs = context.getSharedPreferences(
+                                    "ampafacil_auth",
+                                    Context.MODE_PRIVATE
+                                )
                                 prefs.edit().putString("last_ampa_code", clean).apply()
 
                                 isLoading = false
@@ -273,7 +296,6 @@ fun AmpaCodeScreen(
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 onCodeAccepted()
-
                             }
                             .addOnFailureListener { e ->
                                 isLoading = false
@@ -335,7 +357,7 @@ fun AmpaCodeScreen(
                 Spacer(Modifier.height(12.dp))
 
                 Text(
-                    text = "Código de 6 dígitos proporcionado por su AMPA",
+                    text = "Introduce el código de 6 dígitos que te ha facilitado tu AMPA",
                     color = primaryColor,
                     fontFamily = fontFamily
                 )
@@ -345,8 +367,8 @@ fun AmpaCodeScreen(
                     onValueChange = { new -> code = new.filter { it.isDigit() }.take(6) },
                     label = { Text("Código AMPA (6 dígitos)") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -432,8 +454,6 @@ fun AmpaCodeScreen(
                         fontFamily = fontFamily
                     )
                 }
-
-
             }
         }
 
@@ -442,16 +462,42 @@ fun AmpaCodeScreen(
         OutlinedButton(
             onClick = { onCreateAmpa() },
             enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "CREAR una AMPA nueva                  (solo para la directiva)",
-                color = primaryColor,
-                fontFamily = fontFamily
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(
+                width = 2.dp,
+                color = primaryColor
+            ),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = primaryColor.copy(alpha = 0.08f),
+                contentColor = primaryColor
             )
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Mostramos claramente que esta opción sirve para crear un AMPA desde cero.
+                Text(
+                    text = "CREAR UNA AMPA NUEVA",
+                    color = primaryColor,
+                    fontFamily = fontFamily,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Aclaramos que esta opción no es para familias, sino para miembros de la directiva.
+                Text(
+                    text = "Solo presidente, secretario, vicepresidente",
+                    color = primaryColor.copy(alpha = 0.80f),
+                    fontFamily = fontFamily,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
     }
-
-    }
-
-
 }

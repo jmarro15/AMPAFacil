@@ -73,8 +73,6 @@ fun CreateAmpaScreen(
     val clipboard = LocalClipboardManager.current
     val screenScroll = rememberScrollState()
 
-
-
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
 
@@ -151,8 +149,6 @@ fun CreateAmpaScreen(
     var ampaName by remember { mutableStateOf("") }
     var schoolCode by remember { mutableStateOf("") }
 
-
-
     /* Lista oficial de tipos de centro: mostramos texto largo, pero guardamos solo el código. */
     val schoolTypeOptions = remember {
         listOf(
@@ -210,15 +206,15 @@ fun CreateAmpaScreen(
     val borderWidth = (borderThickness.dp).dp
     val fontStyle = fontStyleFrom(appearance.fontStyle)
 
-    // Aquí dejamos definidos los colores de las cajas para que el texto se vea bien
-// tanto cuando escribimos como cuando el campo está vacío.
+    // Aquí ponemos el texto escrito por la persona usuaria en gris oscuro,
+    // igual en foco y sin foco, para que se vea bien en todos los campos.
     val textFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = Color.Black,
-        unfocusedTextColor = Color.DarkGray,
-        focusedLabelColor = Color.DarkGray,
-        unfocusedLabelColor = Color.Gray,
-        focusedPlaceholderColor = Color.Gray,
-        unfocusedPlaceholderColor = Color.Gray,
+        focusedTextColor = Color(0xFF424242),
+        unfocusedTextColor = Color(0xFF424242),
+        focusedLabelColor = Color(0xFF616161),
+        unfocusedLabelColor = Color(0xFF9E9E9E),
+        focusedPlaceholderColor = Color(0xFF9E9E9E),
+        unfocusedPlaceholderColor = Color(0xFFBDBDBD),
         cursorColor = primaryColor,
         focusedBorderColor = primaryColor,
         unfocusedBorderColor = Color.Gray
@@ -380,15 +376,7 @@ fun CreateAmpaScreen(
 
                     Spacer(Modifier.height(10.dp))
 
-                    OutlinedTextField(
-                        value = selectedProvince?.prefix ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Prefijo provincia (automatico)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
 
-                    Spacer(Modifier.height(10.dp))
 
                     OutlinedTextField(
                         value = localidad,
@@ -397,7 +385,6 @@ fun CreateAmpaScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = textFieldColors
-
                     )
 
                     Spacer(Modifier.height(10.dp))
@@ -439,7 +426,8 @@ fun CreateAmpaScreen(
                         onValueChange = { schoolName = it },
                         label = { Text("Nombre del colegio *") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
                     )
 
                     Spacer(Modifier.height(10.dp))
@@ -449,7 +437,8 @@ fun CreateAmpaScreen(
                         onValueChange = { ampaName = it },
                         label = { Text("Nombre del AMPA *") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
                     )
 
                     Spacer(Modifier.height(10.dp))
@@ -461,7 +450,8 @@ fun CreateAmpaScreen(
                         },
                         label = { Text("Código del centro (8 alfanuméricos) *") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
                     )
                 }
             }
@@ -533,7 +523,8 @@ fun CreateAmpaScreen(
                         onValueChange = { nombre = it },
                         label = { Text("Nombre *") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
                     )
 
                     Spacer(Modifier.height(20.dp))
@@ -543,7 +534,8 @@ fun CreateAmpaScreen(
                         onValueChange = { apellidos = it },
                         label = { Text("Apellidos *") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
                     )
 
                     Spacer(Modifier.height(10.dp))
@@ -553,7 +545,8 @@ fun CreateAmpaScreen(
                         onValueChange = { telefono = it.filter { c -> c.isDigit() }.take(15) },
                         label = { Text("Teléfono *") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
                     )
                 }
             }
@@ -587,7 +580,7 @@ fun CreateAmpaScreen(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = "Los campos con * son obligatorios. El PDF y la personalización se completan después.",
+                text = "Los campos con * son obligatorios. La personalización se completan después.",
                 style = MaterialTheme.typography.bodySmall,
                 color = secondaryColor.copy(alpha = 0.8f),
                 fontFamily = fontFamily
