@@ -282,7 +282,7 @@ fun FamilyChildrenScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        "Registramos los datos escolares con valores controlados para poder filtrar bien en el futuro.",
+                        "Registramos los datos escolares de su/s hijos/as.",
                         style = MaterialTheme.typography.bodyMedium
                     )
 

@@ -401,6 +401,8 @@ fun AmpaCodeScreen(
                     colors = textFieldColors
                 )
 
+
+
                 Spacer(Modifier.height(8.dp))
 
                 OutlinedTextField(
@@ -414,32 +416,7 @@ fun AmpaCodeScreen(
 
                 Spacer(Modifier.height(12.dp))
 
-                Text(
-                    text = "Tipo de usuario",
-                    color = primaryColor,
-                    fontFamily = fontFamily
-                )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = selectedRole == Roles.FAMILY,
-                        onClick = { selectedRole = Roles.FAMILY }
-                    )
-                    Text(
-                        text = "Familia",
-                        modifier = Modifier.padding(end = 16.dp),
-                        fontFamily = fontFamily
-                    )
-
-                    RadioButton(
-                        selected = selectedRole == Roles.TUTOR,
-                        onClick = { selectedRole = Roles.TUTOR }
-                    )
-                    Text(
-                        text = "Tutor/a",
-                        fontFamily = fontFamily
-                    )
-                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -457,7 +434,7 @@ fun AmpaCodeScreen(
             }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(20.dp))
 
         OutlinedButton(
             onClick = { onCreateAmpa() },

@@ -283,7 +283,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(22.dp))
 
                     Text(
-                        text = "Futuras ampliaciones",
+                        text = "Próximas mejoras planificadas",
                         style = MaterialTheme.typography.titleMedium,
                         color = primaryColor,
                         fontFamily = fontFamily
