@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import com.ampafacil.app.R
 import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+
 
 @Composable
 fun AuthScreen(
@@ -282,6 +284,7 @@ fun AuthScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.Black)
             .padding(20.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
