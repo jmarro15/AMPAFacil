@@ -48,7 +48,7 @@ import kotlinx.coroutines.delay
 import com.ampafacil.app.data.BorderThickness
 
 /*
- * Pantallazo del AMPA: se ve al abrir la app (solo una vez al día).
+ * Pantallazo del AMPA: se ve al abrir la app cuando hay AMPA activa.
  * Dura unos segundos y luego pasa a Home.
  */
 @Composable
@@ -234,11 +234,11 @@ fun AmpaSplashScreen(
 
         Spacer(modifier = Modifier.weight(1.1f))
 
-        // En la parte inferior dejamos el logo de AMPAFácil más discreto y con margen.
+        // Dejamos el logo de AMPAFácil un poco más grande para que tenga más presencia visual.
         Image(
             painter = painterResource(id = R.drawable.logo_ampafacil),
             contentDescription = "Logo de AMPAFácil",
-            modifier = Modifier.size(150.dp),
+            modifier = Modifier.size(200.dp),
             contentScale = ContentScale.Fit
         )
 

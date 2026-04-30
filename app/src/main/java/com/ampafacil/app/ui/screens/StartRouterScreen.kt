@@ -15,12 +15,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ampafacil.app.data.Roles
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import java.time.LocalDate
 
 /*
  * Esta pantalla decide adónde ir al arrancar.
@@ -34,7 +32,6 @@ fun StartRouterScreen(
     onGoHome: () -> Unit,
     onGoAmpaSplash: () -> Unit
 ) {
-    val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
 
@@ -89,19 +86,9 @@ fun StartRouterScreen(
                                 return@addOnSuccessListener
                             }
 
-                            val prefs = context.getSharedPreferences("ampafacil_start", 0)
-                            val today = LocalDate.now().toString()
-                            val key = "splash_day_${uid}_$activeAmpaCode"
-                            val lastDay = prefs.getString(key, null)
-
-                            if (lastDay == today) {
-                                routed.value = true
-                                onGoHome()
-                            } else {
-                                prefs.edit().putString(key, today).apply()
-                                routed.value = true
-                                onGoAmpaSplash()
-                            }
+                            // Mostramos siempre la splash para poder comprobar el diseño en cada entrada a la app.
+                            routed.value = true
+                            onGoAmpaSplash()
                         }
                         .addOnFailureListener {
                             routed.value = true
