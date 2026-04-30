@@ -130,6 +130,8 @@ fun AmpaCodeScreen(
         FontStyleOption.DEFAULT -> FontFamily.Default
         FontStyleOption.ROUNDED -> FontFamily.SansSerif
         FontStyleOption.SERIF -> FontFamily.Serif
+        FontStyleOption.MODERN -> FontFamily.SansSerif
+        FontStyleOption.FRIENDLY -> FontFamily.SansSerif
     }
 
     val buttonColors = ButtonDefaults.buttonColors(
