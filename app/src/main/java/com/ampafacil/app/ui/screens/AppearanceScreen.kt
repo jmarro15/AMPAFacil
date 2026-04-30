@@ -52,6 +52,7 @@ import com.ampafacil.app.data.BorderThickness
 import com.ampafacil.app.data.FontStyleOption
 import com.ampafacil.app.data.Roles
 import com.ampafacil.app.data.ampaAppearanceFromMap
+import com.ampafacil.app.data.ampaTextFieldColors
 import com.ampafacil.app.data.borderThicknessFrom
 import com.ampafacil.app.data.colorToHex
 import com.ampafacil.app.data.fontStyleFrom
@@ -290,6 +291,7 @@ fun AppearanceScreen(
                 onValueChange = { appearance = appearance.copy(logoUrl = it) },
                 label = { Text("URL del logo (opcional)") },
                 modifier = Modifier.fillMaxWidth(),
+                colors = ampaTextFieldColors(appearance),
                 enabled = isDirector && !isSaving
             )
 
@@ -348,6 +350,7 @@ fun AppearanceScreen(
             Button(
                 onClick = { saveAppearance() },
                 modifier = Modifier.fillMaxWidth(),
+                colors = ampaTextFieldColors(appearance),
                 enabled = isDirector && !isSaving
             ) {
                 Text(if (isSaving) "Guardando…" else "Guardar apariencia")
