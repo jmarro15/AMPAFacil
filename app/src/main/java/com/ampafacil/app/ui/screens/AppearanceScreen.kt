@@ -350,7 +350,7 @@ fun AppearanceScreen(
             Button(
                 onClick = { saveAppearance() },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ampaTextFieldColors(appearance),
+                
                 enabled = isDirector && !isSaving
             ) {
                 Text(if (isSaving) "Guardando…" else "Guardar apariencia")
