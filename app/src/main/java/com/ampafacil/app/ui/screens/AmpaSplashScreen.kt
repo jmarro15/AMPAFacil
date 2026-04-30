@@ -1,5 +1,8 @@
+// File: app/src/main/java/com/ampafacil/app/ui/screens/AmpaSplashScreen.kt
 package com.ampafacil.app.ui.screens
 
+import android.content.Context
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
@@ -37,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ampafacil.app.R
 import com.ampafacil.app.data.AmpaAppearance
+import com.ampafacil.app.data.BorderThickness
 import com.ampafacil.app.data.FontStyleOption
 import com.ampafacil.app.data.ampaAppearanceFromMap
 import com.ampafacil.app.data.borderThicknessFrom
@@ -45,7 +50,40 @@ import com.ampafacil.app.data.parseHexColor
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
-import com.ampafacil.app.data.BorderThickness
+
+private sealed interface SplashLogoModel {
+    data class Remote(val value: String) : SplashLogoModel
+    data class Local(val resId: Int) : SplashLogoModel
+}
+
+private fun resolveSplashLogoModel(rawLogo: String, context: Context): SplashLogoModel? {
+    val value = rawLogo.trim()
+    if (value.isBlank()) return null
+
+    // Permitimos el formato @drawable/... para mantener compatibilidad con configuraciones antiguas.
+    if (value.startsWith("@drawable/")) {
+        val drawableName = value.removePrefix("@drawable/")
+        val resId = context.resources.getIdentifier(drawableName, "drawable", context.packageName)
+        if (resId != 0) return SplashLogoModel.Local(resId)
+    }
+
+    // Si nos llega un id numérico directo también lo aceptamos.
+    value.toIntOrNull()?.takeIf { it != 0 }?.let { return SplashLogoModel.Local(it) }
+
+    // Priorizamos URIs conocidas para evitar tratar rutas remotas como nombres de recurso.
+    val uri = Uri.parse(value)
+    if (uri.scheme in setOf("http", "https", "content", "file", "android.resource")) {
+        return SplashLogoModel.Remote(value)
+    }
+
+    // Como último paso intentamos resolverlo como nombre de drawable simple.
+    if (value.matches(Regex("^[a-z0-9_]+$"))) {
+        val resId = context.resources.getIdentifier(value, "drawable", context.packageName)
+        if (resId != 0) return SplashLogoModel.Local(resId)
+    }
+
+    return null
+}
 
 /*
  * Pantallazo del AMPA: se ve al abrir la app cuando hay AMPA activa.
@@ -63,6 +101,7 @@ fun AmpaSplashScreen(
     var ampaName by remember { mutableStateOf("") }
     var schoolType by remember { mutableStateOf("") }
     var schoolName by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         val uid = auth.currentUser?.uid
@@ -126,6 +165,7 @@ fun AmpaSplashScreen(
     val displayAmpaName = ampaName.trim()
     val displaySchoolType = schoolType.trim()
     val displaySchoolName = schoolName.ifBlank { appearance.schoolName }.trim()
+    val splashLogoModel = resolveSplashLogoModel(appearance.logoUrl, context)
 
     Column(
         modifier = Modifier
@@ -150,36 +190,53 @@ fun AmpaSplashScreen(
                     .border(borderWidth, primary, RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (appearance.logoUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = appearance.logoUrl,
-                        contentDescription = "Logo del AMPA",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                } else {
-                    // Si aún no hay logo, mostramos un placeholder   claro.
-                    Column(
-                        modifier = Modifier.padding(horizontal = 14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Image,
-                            contentDescription = null,
-                            tint = primary,
-                            modifier = Modifier.size(42.dp)
+                when (splashLogoModel) {
+                    is SplashLogoModel.Local -> {
+                        Image(
+                            painter = painterResource(id = splashLogoModel.resId),
+                            contentDescription = "Logo del AMPA",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp),
+                            contentScale = ContentScale.Fit
                         )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "AQUÍ LOGO DE SU AMPA",
-                            color = primary,
-                            fontFamily = fontFamily,
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.labelLarge
+                    }
+
+                    is SplashLogoModel.Remote -> {
+                        AsyncImage(
+                            model = splashLogoModel.value,
+                            contentDescription = "Logo del AMPA",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp),
+                            contentScale = ContentScale.Fit
                         )
+                    }
+
+                    null -> {
+                        // Comprobamos si tenemos logo antes de mostrar el marcador provisional.
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Image,
+                                contentDescription = null,
+                                tint = primary,
+                                modifier = Modifier.size(42.dp)
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Text(
+                                text = "AQUÍ LOGO DE SU AMPA",
+                                color = primary,
+                                fontFamily = fontFamily,
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
                     }
                 }
             }
