@@ -159,6 +159,8 @@ fun AmpaSplashScreen(
         FontStyleOption.DEFAULT -> FontFamily.Default
         FontStyleOption.ROUNDED -> FontFamily.SansSerif
         FontStyleOption.SERIF -> FontFamily.Serif
+        FontStyleOption.MODERN -> FontFamily.SansSerif
+        FontStyleOption.FRIENDLY -> FontFamily.SansSerif
     }
 
     // Preparamos los textos con fallback suave para que la splash no se rompa con datos antiguos.

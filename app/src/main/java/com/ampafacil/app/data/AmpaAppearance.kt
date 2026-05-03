@@ -5,6 +5,7 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.runtime.Composable
 
 /*
  * Aquí definimos cómo guardamos y leemos la apariencia visual de cada AMPA.
@@ -151,7 +152,7 @@ fun ampaAppearanceFromMap(map: Map<String, Any>?): AmpaAppearance {
         themePreset = map["themePreset"]?.toString() ?: ThemePreset.CLASICO_AZUL.value
     )
 }
-
+@Composable
 fun ampaTextFieldColors(appearance: AmpaAppearance): TextFieldColors {
     val primary = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
     val secondary = parseHexColor(appearance.secondaryColor, Color(0xFF2E7D32))
