@@ -57,7 +57,8 @@ enum class ButtonShape(val value: String, val cornerRadiusDp: Int) {
 enum class ThemePreset(val value: String) {
     CLASICO_AZUL("CLASICO_AZUL"),
     NATURAL_VERDE("NATURAL_VERDE"),
-    VIBRANTE_CORAL("VIBRANTE_CORAL")
+    MORADO_MODERNO("MORADO_MODERNO"),
+    ARENA_CALIDO("ARENA_CALIDO")
 }
 
 data class ThemePresetDefinition(
@@ -83,20 +84,25 @@ val initialThemePresets: List<ThemePresetDefinition> = listOf(
             primaryColor = "#2E7D32",
             secondaryColor = "#00695C",
             backgroundColor = "#F3FAF4",
-            gradientDirection = GradientDirection.LEFT_TO_RIGHT.value,
-            buttonShape = ButtonShape.PILL.value,
             themePreset = ThemePreset.NATURAL_VERDE.value
         )
     ),
     ThemePresetDefinition(
-        preset = ThemePreset.VIBRANTE_CORAL,
+        preset = ThemePreset.MORADO_MODERNO,
         appearance = AmpaAppearance(
-            primaryColor = "#F4511E",
+            primaryColor = "#6A1B9A",
             secondaryColor = "#8E24AA",
-            backgroundColor = "#FFF7F5",
-            gradientDirection = GradientDirection.DIAGONAL_TOP_START_TO_BOTTOM_END.value,
-            buttonShape = ButtonShape.ROUNDED_MEDIUM.value,
-            themePreset = ThemePreset.VIBRANTE_CORAL.value
+            backgroundColor = "#F3E5F5",
+            themePreset = ThemePreset.MORADO_MODERNO.value
+        )
+    ),
+    ThemePresetDefinition(
+        preset = ThemePreset.ARENA_CALIDO,
+        appearance = AmpaAppearance(
+            primaryColor = "#8D6E63",
+            secondaryColor = "#E65100",
+            backgroundColor = "#FFF8E1",
+            themePreset = ThemePreset.ARENA_CALIDO.value
         )
     )
 )

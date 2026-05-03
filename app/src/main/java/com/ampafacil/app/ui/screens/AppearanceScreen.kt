@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -51,6 +53,8 @@ import com.ampafacil.app.data.AmpaAppearance
 import com.ampafacil.app.data.BorderThickness
 import com.ampafacil.app.data.FontStyleOption
 import com.ampafacil.app.data.Roles
+import com.ampafacil.app.data.ThemePreset
+import com.ampafacil.app.data.initialThemePresets
 import com.ampafacil.app.data.ampaAppearanceFromMap
 import com.ampafacil.app.data.ampaTextFieldColors
 import com.ampafacil.app.data.borderThicknessFrom
@@ -83,6 +87,15 @@ fun AppearanceScreen(
     val primaryOptions = listOf(Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFF6A1B9A), Color(0xFFE65100))
     val secondaryOptions = listOf(Color(0xFF2E7D32), Color(0xFF0288D1), Color(0xFFC2185B), Color(0xFF6D4C41))
     val backgroundOptions = listOf(Color(0xFFF7F9FC), Color(0xFFFFF8E1), Color(0xFFF3E5F5), Color(0xFFE8F5E9))
+    // Aquí preparamos los presets con nombre visible para aplicarlos desde la UI.
+    val themePresetLabels = remember {
+        mapOf(
+            ThemePreset.CLASICO_AZUL to "Azul institucional",
+            ThemePreset.NATURAL_VERDE to "Verde escolar",
+            ThemePreset.MORADO_MODERNO to "Morado moderno",
+            ThemePreset.ARENA_CALIDO to "Arena cálido"
+        )
+    }
 
     LaunchedEffect(Unit) {
         val user = auth.currentUser
@@ -298,6 +311,60 @@ fun AppearanceScreen(
             )
 
             HorizontalDivider()
+
+            // Aquí mostramos presets predefinidos para aplicar una apariencia base rápidamente.
+            Text("Temas predefinidos")
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(initialThemePresets) { presetDefinition ->
+                    val preview = presetDefinition.appearance
+                    val isSelected = appearance.themePreset == presetDefinition.preset.value
+                    Card(
+                        modifier = Modifier
+                            .border(
+                                if (isSelected) 2.dp else 1.dp,
+                                if (isSelected) primaryColor else Color.LightGray,
+                                RoundedCornerShape(12.dp)
+                            ),
+                        onClick = {
+                            // Aquí aplicamos el preset al estado local sin guardar todavía en Firestore.
+                            appearance = appearance.copy(
+                                primaryColor = preview.primaryColor,
+                                secondaryColor = preview.secondaryColor,
+                                backgroundColor = preview.backgroundColor,
+                                fontStyle = preview.fontStyle,
+                                borderThickness = preview.borderThickness,
+                                themePreset = presetDefinition.preset.value
+                            )
+                        },
+                        enabled = isDirector && !isSaving
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = themePresetLabels[presetDefinition.preset] ?: presetDefinition.preset.value,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(
+                                    preview.primaryColor,
+                                    preview.secondaryColor,
+                                    preview.backgroundColor
+                                ).forEach { hex ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(parseHexColor(hex, Color.Gray))
+                                            .border(1.dp, Color.DarkGray, RoundedCornerShape(4.dp))
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             Text("Color principal")
             ColorOptionsRow(primaryOptions, primaryColor, isDirector && !isSaving) { selected ->
