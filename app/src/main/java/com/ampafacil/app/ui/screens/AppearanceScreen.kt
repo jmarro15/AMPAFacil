@@ -333,6 +333,8 @@ fun AppearanceScreen(
                                 backgroundColor = preview.backgroundColor,
                                 fontStyle = preview.fontStyle,
                                 borderThickness = preview.borderThickness,
+                                gradientDirection = preview.gradientDirection,
+                                buttonShape = preview.buttonShape,
                                 themePreset = presetDefinition.preset.value
                             )
                         },

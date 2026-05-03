@@ -84,6 +84,8 @@ val initialThemePresets: List<ThemePresetDefinition> = listOf(
             primaryColor = "#2E7D32",
             secondaryColor = "#00695C",
             backgroundColor = "#F3FAF4",
+            gradientDirection = GradientDirection.TOP_TO_BOTTOM.value,
+            buttonShape = ButtonShape.ROUNDED_MEDIUM.value,
             themePreset = ThemePreset.NATURAL_VERDE.value
         )
     ),
@@ -93,6 +95,8 @@ val initialThemePresets: List<ThemePresetDefinition> = listOf(
             primaryColor = "#6A1B9A",
             secondaryColor = "#8E24AA",
             backgroundColor = "#F3E5F5",
+            gradientDirection = GradientDirection.TOP_TO_BOTTOM.value,
+            buttonShape = ButtonShape.ROUNDED_MEDIUM.value,
             themePreset = ThemePreset.MORADO_MODERNO.value
         )
     ),
@@ -102,6 +106,8 @@ val initialThemePresets: List<ThemePresetDefinition> = listOf(
             primaryColor = "#8D6E63",
             secondaryColor = "#E65100",
             backgroundColor = "#FFF8E1",
+            gradientDirection = GradientDirection.TOP_TO_BOTTOM.value,
+            buttonShape = ButtonShape.ROUNDED_MEDIUM.value,
             themePreset = ThemePreset.ARENA_CALIDO.value
         )
     )
