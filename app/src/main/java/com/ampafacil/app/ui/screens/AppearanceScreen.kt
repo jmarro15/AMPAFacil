@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -66,6 +67,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppearanceScreen(
@@ -83,6 +85,10 @@ fun AppearanceScreen(
     var noActiveAmpa by remember { mutableStateOf(false) }
 
     var appearance by remember { mutableStateOf(AmpaAppearance()) }
+
+    // Guardamos el nombre del AMPA aparte porque no pertenece a themeConfig.
+// De momento solo lo usamos para mostrarlo en la vista previa.
+    var ampaName by remember { mutableStateOf("") }
 
     val primaryOptions = listOf(Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFF6A1B9A), Color(0xFFE65100))
     val secondaryOptions = listOf(Color(0xFF2E7D32), Color(0xFF0288D1), Color(0xFFC2185B), Color(0xFF6D4C41))
@@ -133,10 +139,19 @@ fun AppearanceScreen(
                         db.collection("ampas").document(activeCode).get()
                             .addOnSuccessListener { ampaDoc ->
                                 val schoolName = ampaDoc.getString("schoolName") ?: ""
+                                val loadedAmpaName = ampaDoc.getString("ampaName") ?: ""
                                 val loaded = ampaAppearanceFromMap(ampaDoc.get("themeConfig") as? Map<String, Any>)
+
+                                // Guardamos el nombre del AMPA aparte porque no pertenece a themeConfig.
+                                // De momento solo lo usamos para mostrarlo en la vista previa.
+                                ampaName = loadedAmpaName
+
+                                    // Cargamos la apariencia guardada y completamos el nombre del colegio
+                                    // desde el documento principal si todavía no existe dentro de themeConfig.
                                 appearance = loaded.copy(
                                     schoolName = if (loaded.schoolName.isBlank()) schoolName else loaded.schoolName
                                 )
+
                                 loading = false
                             }
                             .addOnFailureListener {
@@ -451,7 +466,7 @@ fun AppearanceScreen(
                 backgroundColor = backgroundColor,
                 borderDp = border.dp,
                 fontFamily = fontFamily,
-                ampaName = appearance.ampaName.ifBlank { "Nombre del AMPA" },
+                ampaName = ampaName.ifBlank { "Nombre del AMPA" },
                 schoolName = appearance.schoolName.ifBlank { "Nombre del colegio" }
             )
 
