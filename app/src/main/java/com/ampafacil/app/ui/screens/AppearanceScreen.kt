@@ -2,6 +2,7 @@
 package com.ampafacil.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -218,7 +220,7 @@ fun AppearanceScreen(
             ) {
                 CircularProgressIndicator()
                 Spacer(Modifier.height(12.dp))
-                Text("Cargando apariencia…")
+                Text("Cargando apariencia…", color = MaterialTheme.colorScheme.onBackground)
             }
             return@Scaffold
         }
@@ -235,9 +237,9 @@ fun AppearanceScreen(
             if (noActiveAmpa) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp)) {
-                        Text("No hemos encontrado un AMPA activo", style = MaterialTheme.typography.titleMedium)
+                        Text("No hemos encontrado un AMPA activo", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.height(6.dp))
-                        Text("Revisa tu acceso o vuelve a introducir el código del AMPA.")
+                        Text("Revisa tu acceso o vuelve a introducir el código del AMPA.", color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
                 return@Column
@@ -246,9 +248,9 @@ fun AppearanceScreen(
             if (!isDirector) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp)) {
-                        Text("Acceso solo para directiva", style = MaterialTheme.typography.titleMedium)
+                        Text("Acceso solo para directiva", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.height(6.dp))
-                        Text("Tu usuario no tiene permisos de edición en esta pantalla.")
+                        Text("Tu usuario no tiene permisos de edición en esta pantalla.", color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -292,8 +294,9 @@ fun AppearanceScreen(
 
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        text = appearance.schoolName.ifBlank { "Colegio sin nombre" },
+                        text = appearance.schoolName.ifBlank { "Nombre del colegio" },
                         style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFamily = fontFamily
                     )
                 }
@@ -311,7 +314,7 @@ fun AppearanceScreen(
             HorizontalDivider()
 
             // Aquí mostramos los presets en una cuadrícula 2x2 para mejorar la lectura en móvil.
-            Text("Temas predefinidos")
+            Text("Temas predefinidos", color = MaterialTheme.colorScheme.onBackground)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 initialThemePresets.chunked(2).forEach { presetRow ->
                     Row(
@@ -375,22 +378,22 @@ fun AppearanceScreen(
                 }
             }
 
-            Text("Color principal")
+            Text("Color principal", color = MaterialTheme.colorScheme.onBackground)
             ColorOptionsRow(primaryOptions, primaryColor, isDirector && !isSaving) { selected ->
                 appearance = appearance.copy(primaryColor = colorToHex(selected))
             }
 
-            Text("Color secundario")
+            Text("Color secundario", color = MaterialTheme.colorScheme.onBackground)
             ColorOptionsRow(secondaryOptions, secondaryColor, isDirector && !isSaving) { selected ->
                 appearance = appearance.copy(secondaryColor = colorToHex(selected))
             }
 
-            Text("Color de fondo")
+            Text("Color de fondo", color = MaterialTheme.colorScheme.onBackground)
             ColorOptionsRow(backgroundOptions, backgroundColor, isDirector && !isSaving) { selected ->
                 appearance = appearance.copy(backgroundColor = colorToHex(selected))
             }
 
-            Text("Grosor de borde")
+            Text("Grosor de borde", color = MaterialTheme.colorScheme.onBackground)
             // Aquí mostramos el grosor en vertical para que sea más cómodo en pantallas pequeñas.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 BorderThickness.entries.forEach { option ->
@@ -402,17 +405,16 @@ fun AppearanceScreen(
                     FilterChip(
                         selected = border == option,
                         onClick = { appearance = appearance.copy(borderThickness = option.value) },
-                        label = { Text(borderLabel) },
+                        label = { Text(borderLabel, color = MaterialTheme.colorScheme.onSurface) },
                         enabled = isDirector && !isSaving
                     )
                 }
             }
 
-            Text("Tipografía")
+            Text("Tipografía", color = MaterialTheme.colorScheme.onBackground)
             // Aquí dejamos solo las tipografías ya aplicadas visualmente y en formato vertical.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FontStyleOption.entries
-                    .filter { it != FontStyleOption.FRIENDLY }
                     .forEach { option ->
                     val fontLabel = when (option) {
                         FontStyleOption.DEFAULT -> "AMPAFácil"
@@ -424,21 +426,32 @@ fun AppearanceScreen(
                     FilterChip(
                         selected = font == option,
                         onClick = { appearance = appearance.copy(fontStyle = option.value) },
-                        label = { Text(fontLabel) },
+                        label = {
+                            val optionFamily = when (option) {
+                                FontStyleOption.DEFAULT -> FontFamily.Default
+                                FontStyleOption.ROUNDED -> FontFamily.SansSerif
+                                FontStyleOption.SERIF -> FontFamily.Serif
+                                FontStyleOption.MODERN -> FontFamily.SansSerif
+                                FontStyleOption.FRIENDLY -> FontFamily.SansSerif
+                            }
+                            Text(fontLabel, color = MaterialTheme.colorScheme.onSurface, fontFamily = optionFamily)
+                        },
                         enabled = isDirector && !isSaving
                     )
                 }
             }
 
             HorizontalDivider()
-            Text("Vista previa", style = MaterialTheme.typography.titleMedium)
+            Text("Vista previa", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
 
             PreviewCard(
                 primaryColor = primaryColor,
                 secondaryColor = secondaryColor,
                 backgroundColor = backgroundColor,
                 borderDp = border.dp,
-                fontFamily = fontFamily
+                fontFamily = fontFamily,
+                ampaName = appearance.ampaName.ifBlank { "Nombre del AMPA" },
+                schoolName = appearance.schoolName.ifBlank { "Nombre del colegio" }
             )
 
             Button(
@@ -486,43 +499,91 @@ private fun PreviewCard(
     secondaryColor: Color,
     backgroundColor: Color,
     borderDp: Int,
-    fontFamily: FontFamily
+    fontFamily: FontFamily,
+    ampaName: String,
+    schoolName: String
 ) {
+    // Con esta función elegimos un color de texto legible para la vista previa.
+    // Si el fondo es claro usamos texto oscuro, y si el fondo es oscuro usamos texto claro.
+    val previewTextColor = readableTextColor(backgroundColor)
+    val borderWidth = borderDp.dp
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(borderDp.dp, secondaryColor, RoundedCornerShape(16.dp))
+            .border(borderWidth, secondaryColor, RoundedCornerShape(18.dp))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(backgroundColor)
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                "Cabecera de ejemplo",
-                color = primaryColor,
-                style = MaterialTheme.typography.titleMedium,
-                fontFamily = fontFamily
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(92.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(primaryColor.copy(alpha = 0.10f))
+                    .border(1.dp, primaryColor.copy(alpha = 0.45f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Column(Modifier.padding(10.dp)) {
-                    Text("Tarjeta de ejemplo", fontFamily = fontFamily)
-                    Text("Así se verían colores, bordes y tipografía.", fontFamily = fontFamily)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Outlined.Image,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Logo del AMPA",
+                        color = previewTextColor,
+                        fontFamily = fontFamily
+                    )
                 }
             }
 
+            Text(
+                text = ampaName,
+                color = previewTextColor,
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = fontFamily
+            )
+
+            Text(
+                text = schoolName,
+                color = previewTextColor.copy(alpha = 0.9f),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = fontFamily
+            )
+
             Button(
                 onClick = {},
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = primaryColor)
+                border = BorderStroke(borderWidth, secondaryColor),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = readableTextColor(primaryColor)
+                )
             ) {
-                Text("Botón de ejemplo", fontFamily = fontFamily)
+                Text(
+                    text = "Ver comunicado",
+                    fontFamily = fontFamily
+                )
             }
+
+            Text(
+                text = "Así veremos el estilo del AMPA antes de guardar los cambios.",
+                color = previewTextColor.copy(alpha = 0.95f),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = fontFamily
+            )
         }
     }
+}
+
+private fun readableTextColor(backgroundColor: Color): Color {
+    return if (backgroundColor.luminance() > 0.5f) Color.Black else Color.White
 }
