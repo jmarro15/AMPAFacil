@@ -158,6 +158,7 @@ fun AppearanceScreen(
     val primaryColor = parseHexColor(appearance.primaryColor, Color(0xFF1565C0))
     val secondaryColor = parseHexColor(appearance.secondaryColor, Color(0xFF2E7D32))
     val backgroundColor = parseHexColor(appearance.backgroundColor, Color(0xFFF7F9FC))
+    val screenTextColor = readableTextColor(backgroundColor)
     val border = borderThicknessFrom(appearance.borderThickness)
     val borderWidth = (border.dp).dp
     val font = fontStyleFrom(appearance.fontStyle)
@@ -314,7 +315,7 @@ fun AppearanceScreen(
             HorizontalDivider()
 
             // Aquí mostramos los presets en una cuadrícula 2x2 para mejorar la lectura en móvil.
-            Text("Temas predefinidos", color = MaterialTheme.colorScheme.onBackground)
+            Text("Temas predefinidos", color = screenTextColor)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 initialThemePresets.chunked(2).forEach { presetRow ->
                     Row(
@@ -378,22 +379,22 @@ fun AppearanceScreen(
                 }
             }
 
-            Text("Color principal", color = MaterialTheme.colorScheme.onBackground)
+            Text("Color principal", color = screenTextColor)
             ColorOptionsRow(primaryOptions, primaryColor, isDirector && !isSaving) { selected ->
                 appearance = appearance.copy(primaryColor = colorToHex(selected))
             }
 
-            Text("Color secundario", color = MaterialTheme.colorScheme.onBackground)
+            Text("Color secundario", color = screenTextColor)
             ColorOptionsRow(secondaryOptions, secondaryColor, isDirector && !isSaving) { selected ->
                 appearance = appearance.copy(secondaryColor = colorToHex(selected))
             }
 
-            Text("Color de fondo", color = MaterialTheme.colorScheme.onBackground)
+            Text("Color de fondo", color = screenTextColor)
             ColorOptionsRow(backgroundOptions, backgroundColor, isDirector && !isSaving) { selected ->
                 appearance = appearance.copy(backgroundColor = colorToHex(selected))
             }
 
-            Text("Grosor de borde", color = MaterialTheme.colorScheme.onBackground)
+            Text("Grosor de borde", color = screenTextColor)
             // Aquí mostramos el grosor en vertical para que sea más cómodo en pantallas pequeñas.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 BorderThickness.entries.forEach { option ->
@@ -411,7 +412,7 @@ fun AppearanceScreen(
                 }
             }
 
-            Text("Tipografía", color = MaterialTheme.colorScheme.onBackground)
+            Text("Tipografía", color = screenTextColor)
             // Aquí dejamos solo las tipografías ya aplicadas visualmente y en formato vertical.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FontStyleOption.entries
@@ -442,7 +443,7 @@ fun AppearanceScreen(
             }
 
             HorizontalDivider()
-            Text("Vista previa", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
+            Text("Vista previa", style = MaterialTheme.typography.titleMedium, color = screenTextColor)
 
             PreviewCard(
                 primaryColor = primaryColor,
